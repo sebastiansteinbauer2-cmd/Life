@@ -1,0 +1,218 @@
+// Datové typy celé aplikace. Všechny záznamy mají string `id`,
+// aby šly snadno ukládat do IndexedDB i do budoucí cloudové databáze (Supabase).
+
+export type StatId = 'int' | 'str' | 'dis' | 'chess';
+export type ModuleId = 'core' | 'math' | 'training' | 'chess' | 'discover';
+export type Difficulty = 'easy' | 'medium' | 'hard' | 'epic';
+export type Recurrence = 'once' | 'daily' | 'weekly';
+export type MathLevel = 'zaklad' | 'rozsireny' | 'fit';
+export type TrainingGoal = 'sila' | 'vytrvalost' | 'svaly' | 'spalovani';
+export type Equipment = 'hrazda' | 'cinky' | 'gumy';
+export type ExerciseCategory = 'upper' | 'lower' | 'core';
+
+export interface Profile {
+  id: 'me';
+  name: string;
+  onboarded: boolean;
+  createdAt: number;
+  xp: number;
+  statXp: Record<StatId, number>;
+  bestStreak: number;
+  heightCm: number;
+  weightKg: number;
+  trainingGoal: TrainingGoal;
+  equipment: Equipment[];
+  chessUsername: string;
+  chessProxyUrl: string;
+  fideRating: number;
+  mathLevel: MathLevel;
+  examDate: string;
+}
+
+export interface XpEntry {
+  id: string;
+  ts: number;
+  date: string; // YYYY-MM-DD (lokální čas)
+  amount: number;
+  stat: StatId;
+  module: ModuleId;
+  label: string;
+}
+
+/** Vlastní quest vytvořený uživatelem (vestavěné questy jsou definované v kódu). */
+export interface CustomQuest {
+  id: string;
+  title: string;
+  module: ModuleId;
+  stat: StatId;
+  difficulty: Difficulty;
+  recurrence: Recurrence;
+  target: number;
+  createdAt: number;
+  archived?: boolean;
+}
+
+export interface QuestProgress {
+  id: string; // `${questId}|${periodKey}`
+  questId: string;
+  periodKey: string;
+  count: number;
+  completedAt?: number;
+  xpAwarded?: number;
+}
+
+export interface AchievementRecord {
+  id: string;
+  unlockedAt: number;
+}
+
+export interface MetaRecord {
+  id: string;
+  value: unknown;
+}
+
+export interface MathAttempt {
+  id: string;
+  ts: number;
+  date: string;
+  topic: string;
+  template: string;
+  level: MathLevel;
+  correct: boolean;
+}
+
+export interface TopicSrs {
+  id: string; // topic id
+  box: number;
+  due: string; // YYYY-MM-DD
+}
+
+export interface BossResult {
+  id: string;
+  ts: number;
+  level: MathLevel;
+  score: number;
+  correct: number;
+  total: number;
+  durationSec: number;
+}
+
+export interface Exercise {
+  id: string;
+  name: string;
+  unit: 'reps' | 'sec';
+  category: ExerciseCategory;
+  builtIn: boolean;
+  max: number; // osobní rekord v jedné sérii
+  xp: number; // nasbíraný objem (pro level cviku)
+  archived?: boolean;
+}
+
+export interface WorkoutEntry {
+  exerciseId: string;
+  sets: number[];
+}
+
+export interface Workout {
+  id: string;
+  ts: number;
+  date: string;
+  entries: WorkoutEntry[];
+  xp: number;
+  prs: string[]; // id cviků, kde padl rekord
+  note?: string;
+}
+
+export interface WeightEntry {
+  id: string; // datum YYYY-MM-DD
+  date: string;
+  kg: number;
+}
+
+export type ChessResult = 'win' | 'draw' | 'loss';
+export type ChessTimeClass = 'rapid' | 'blitz' | 'bullet' | 'daily';
+
+export interface ChessGame {
+  id: string; // URL partie
+  endTime: number; // ms
+  timeClass: ChessTimeClass;
+  timeControl: string;
+  rated: boolean;
+  color: 'white' | 'black';
+  result: ChessResult;
+  myRating: number;
+  opponent: string;
+  opponentRating: number;
+  eco: string;
+  opening: string;
+  note?: string;
+  analyzed?: boolean;
+  xp?: number;
+}
+
+export interface ChessRatingSnapshot {
+  id: string; // datum
+  ts: number;
+  rapid?: number;
+  blitz?: number;
+  bullet?: number;
+  daily?: number;
+  puzzles?: number;
+}
+
+export interface Book {
+  id: string;
+  title: string;
+  author: string;
+  chapters: number;
+  done: number;
+  builtIn: boolean;
+}
+
+export interface Discovery {
+  id: string;
+  ts: number;
+  date: string;
+  text: string;
+  tags: string[];
+  sourceId?: string;
+  lastReviewed?: string;
+}
+
+export interface Resource {
+  id: string;
+  title: string;
+  url: string;
+  category: string;
+  description?: string;
+  builtIn: boolean;
+}
+
+/** Mapa všech kolekcí – jediný zdroj pravdy pro úložiště, export i import. */
+export interface Collections {
+  profile: Profile;
+  xpLog: XpEntry;
+  quests: CustomQuest;
+  questProgress: QuestProgress;
+  achievements: AchievementRecord;
+  meta: MetaRecord;
+  mathAttempts: MathAttempt;
+  topicSrs: TopicSrs;
+  bossResults: BossResult;
+  exercises: Exercise;
+  workouts: Workout;
+  weights: WeightEntry;
+  chessGames: ChessGame;
+  chessRatings: ChessRatingSnapshot;
+  books: Book;
+  discoveries: Discovery;
+  resources: Resource;
+}
+
+export type CollectionName = keyof Collections;
+
+export const COLLECTION_NAMES: CollectionName[] = [
+  'profile', 'xpLog', 'quests', 'questProgress', 'achievements', 'meta',
+  'mathAttempts', 'topicSrs', 'bossResults', 'exercises', 'workouts', 'weights',
+  'chessGames', 'chessRatings', 'books', 'discoveries', 'resources',
+];
