@@ -70,6 +70,7 @@ export function GameFeedback() {
         push({ icon: '🔥', big: `${e.days} dní`, text: `Bonus za sérii: +${e.xp} XP` });
       } else if (e.type === 'levelup') {
         setLevelUp({ level: e.level, title: e.title });
+        setTimeout(() => setLevelUp(null), 4000);
         if (navigator.vibrate) navigator.vibrate([40, 60, 40, 60, 120]);
       }
     });
