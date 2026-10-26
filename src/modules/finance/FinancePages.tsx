@@ -111,7 +111,10 @@ function SyncButton({ lastSync }: { lastSync?: number }) {
           r.newDividends ? plural(r.newDividends, 'dividenda', 'dividendy', 'dividend') : '',
           r.xp ? `+${r.xp} XP` : '',
         ];
-      setState({ busy: false, msg: parts.filter(Boolean).join(' · ') });
+      const warn = r.missing.length
+        ? ` ⚠️ Klíči chybí oprávnění: ${r.missing.join(', ')} – tahle data se nenačetla. Vytvoř nový klíč s nimi.`
+        : '';
+      setState({ busy: false, err: r.missing.length > 0, msg: parts.filter(Boolean).join(' · ') + warn });
     } catch (e) {
       setState({ busy: false, err: true, msg: (e as Error).message });
     }

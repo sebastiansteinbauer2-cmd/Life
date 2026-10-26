@@ -20,6 +20,21 @@ export interface FinanceSyncResult {
   newDividends: number;
   xp: number;
   milestones: number;
+  /** Části, které se nenačetly kvůli chybějícímu oprávnění klíče. */
+  missing: string[];
+}
+
+/** Volitelná část synchronizace: při 403 (chybí oprávnění) ji přeskoč a poznamenej. */
+async function optional<T>(fn: () => Promise<T>, fallback: T, permission: string, missing: string[]): Promise<T> {
+  try {
+    return await fn();
+  } catch (e) {
+    if (e instanceof T212Error && e.status === 403) {
+      missing.push(permission);
+      return fallback;
+    }
+    throw e;
+  }
 }
 
 async function readMeta<T>(id: string, fallback: T): Promise<T> {
@@ -66,12 +81,13 @@ export async function syncFinance(onProgress: (msg: string) => void = () => unde
   const proxy = profile.financeProxyUrl || undefined;
   const lastSync = await readMeta<number | null>('financeLastSync', null);
   const firstSync = !lastSync;
+  const missing: string[] = [];
 
   onProgress('Načítám účet…');
   const account = await loadAccount(creds, proxy);
   await sleep(1500);
   onProgress('Načítám pozice…');
-  const positions = await loadPositions(creds, proxy);
+  const positions = await optional(() => loadPositions(creds, proxy), [], 'Portfolio', missing);
   const currency = account.currency;
   const total = account.total;
 
@@ -82,24 +98,29 @@ export async function syncFinance(onProgress: (msg: string) => void = () => unde
   // Historie vkladů – stránkuj, dokud nenarazíš na už známý záznam
   const knownTx = new Set((await store.col('financeTx').all()).map((t) => t.id));
   const freshTx: FinanceTx[] = [];
-  let params: Record<string, string | number | undefined> | null = { limit: 50 };
-  for (let page = 0; params && page < (firstSync ? 4 : 2); page++) {
-    if (page) await sleep(HISTORY_GAP_MS);
-    onProgress(`Načítám vklady${page ? ` (strana ${page + 1})` : ''}…`);
-    const res: Page<RawTx> = (await t212First<Page<RawTx>>(['equity/history/transactions', 'history/transactions'], params, creds, proxy)).data;
-    let hitKnown = false;
-    for (const t of res.items) {
-      if (knownTx.has(t.reference)) { hitKnown = true; continue; }
-      if (!TX_TYPES.includes(t.type as FinanceTxType)) continue;
-      freshTx.push({ id: t.reference, type: t.type as FinanceTxType, amount: t.amount, ts: Date.parse(t.dateTime) });
+  await optional(async () => {
+    let params: Record<string, string | number | undefined> | null = { limit: 50 };
+    for (let page = 0; params && page < (firstSync ? 4 : 2); page++) {
+      if (page) await sleep(HISTORY_GAP_MS);
+      onProgress(`Načítám vklady${page ? ` (strana ${page + 1})` : ''}…`);
+      const res: Page<RawTx> = (await t212First<Page<RawTx>>(['equity/history/transactions', 'history/transactions'], params, creds, proxy)).data;
+      let hitKnown = false;
+      for (const t of res.items) {
+        if (knownTx.has(t.reference)) { hitKnown = true; continue; }
+        if (!TX_TYPES.includes(t.type as FinanceTxType)) continue;
+        freshTx.push({ id: t.reference, type: t.type as FinanceTxType, amount: t.amount, ts: Date.parse(t.dateTime) });
+      }
+      params = hitKnown ? null : nextPageParams(res.nextPagePath);
     }
-    params = hitKnown ? null : nextPageParams(res.nextPagePath);
-  }
+  }, undefined, 'History - Transactions', missing);
 
   await sleep(HISTORY_GAP_MS);
   onProgress('Načítám dividendy…');
   const knownDiv = new Set((await store.col('financeDividends').all()).map((d) => d.id));
-  const divPage = (await t212First<Page<RawDividend>>(['equity/history/dividends', 'history/dividends'], { limit: 50 }, creds, proxy)).data;
+  const divPage = await optional(
+    async () => (await t212First<Page<RawDividend>>(['equity/history/dividends', 'history/dividends'], { limit: 50 }, creds, proxy)).data,
+    { items: [], nextPagePath: null } as Page<RawDividend>, 'History - Dividends', missing,
+  );
   const freshDiv: FinanceDividend[] = divPage.items
     .filter((d) => !knownDiv.has(d.reference))
     .map((d) => ({ id: d.reference, ticker: d.ticker, amount: d.amount, ts: Date.parse(d.paidOn) }));
@@ -153,5 +174,5 @@ export async function syncFinance(onProgress: (msg: string) => void = () => unde
 
   await store.col('meta').put({ id: 'financeLastSync', value: Date.now() });
   await game.checkAchievements();
-  return { firstSync, newDeposits: newDeposits.length, newDividends: newDivs.length, xp, milestones };
+  return { firstSync, newDeposits: newDeposits.length, newDividends: newDivs.length, xp, milestones, missing };
 }
