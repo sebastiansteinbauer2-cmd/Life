@@ -522,6 +522,28 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
   .modal-back { align-items: center; }
 }
 
+/* Na šířku (telefon otočený): nižší spodní lišta, ať zbyde místo na obsah */
+@media (orientation: landscape) and (max-height: 520px) {
+  :root { --nav-h: 48px; }
+  .nav a { flex-direction: row; gap: 6px; font-size: 0.72rem; }
+  .nav a .ic { font-size: 1.1rem; }
+  .nav a.active::before { top: -6px; }
+  .more-grid { grid-template-columns: repeat(6, 1fr); }
+  .modal { max-height: 96vh; }
+  .levelup .lv { font-size: 3.4rem; }
+}
+
+/* Tablet a větší obrazovka: širší obsah */
+@media (min-width: 900px) {
+  .app { max-width: 960px; }
+  .modal { max-width: 720px; }
+  .video-grid { grid-template-columns: 1fr 1fr 1fr; }
+  .stats { grid-template-columns: repeat(5, 1fr); }
+  .stats > :last-child:nth-child(odd) { grid-column: auto; }
+  .nav { justify-content: center; }
+  .nav a { max-width: 130px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
   .levelup .rays, .xpbar > .fill::before { display: none; }
