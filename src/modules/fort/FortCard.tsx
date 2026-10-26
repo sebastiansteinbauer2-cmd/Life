@@ -20,6 +20,10 @@ export default function FortCard() {
             {RES_ICON.wood} {Math.floor(ctx.bal.wood)} · {RES_ICON.stone} {Math.floor(ctx.bal.stone)} · {RES_ICON.crystal} {Math.floor(ctx.bal.crystal)}
             {' · '}
             {f.upgrade ? (now >= f.upgrade.endsAt ? <span style={{ color: 'var(--green)' }}>{buildingDef(f.upgrade.id).name} hotová!</span> : `🔨 ${buildingDef(f.upgrade.id).name}`) : 'stavitel volný'}
+            {ctx.pend.wood + ctx.pend.stone + ctx.pend.crystal > 0 && (
+              <div style={{ color: 'var(--green)' }}>🫧 K sebrání: {(['wood', 'stone', 'crystal'] as const).filter((k) => ctx.pend[k] > 0).map((k) => `${RES_ICON[k]} +${ctx.pend[k]}`).join(' ')}</div>
+            )}
+            {ctx.activeToday && f.chestDay !== dateKey() && <div style={{ color: 'var(--gold)' }}>🎁 Denní truhla čeká na otevření!</div>}
             {activeToday === false && <div style={{ color: 'var(--red)' }}>⚠️ Dnes ještě nemáš XP – v noci hrozí nájezd!</div>}
           </div>
         ) : (

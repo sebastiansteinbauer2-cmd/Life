@@ -16,7 +16,8 @@ const map = (f: (k: keyof Res) => number): Res => ({ wood: f('wood'), stone: f('
 export const add = (a: Res, b: Res, k = 1): Res => map((r) => a[r] + b[r] * k);
 export const scale = (a: Res, k: number): Res => map((r) => Math.round(a[r] * k));
 
-export function newFort(now: number, today: string): FortState {
+/** Nová pevnost. Dosavadní XP se nepočítá – suroviny přibývají za XP od založení (plus startovní bonus). */
+export function newFort(now: number, today: string, got: Res = ZERO): FortState {
   return {
     id: 'me', createdAt: now, createdDate: today,
     delta: { wood: 150, stone: 150, crystal: 10 },
@@ -25,7 +26,19 @@ export function newFort(now: number, today: string): FortState {
     army: { warrior: 4, archer: 0, mage: 0, knight: 0 },
     camps: {},
     raidChecked: today,
+    collected: { ...got },
+    collectedAt: now,
   };
+}
+
+/**
+ * Doplní pole z novějších verzí (nové budovy, sbírání surovin).
+ * Starší pevnosti měly suroviny z XP započtené rovnou – převedou se do zůstatku, aby se nic neztratilo.
+ */
+export function normalizeFort(s: FortState, got: Res, now: number): FortState {
+  const buildings = { ...Object.fromEntries(BUILDINGS.map((b) => [b.id, 1])), ...s.buildings } as Record<BuildingId, number>;
+  if (s.collected) return { ...s, buildings };
+  return { ...s, buildings, delta: add(s.delta, got), collected: { ...got }, collectedAt: now };
 }
 
 /** Suroviny získané z XP (1 XP = 1 surovina podle statistiky). */
@@ -35,7 +48,66 @@ export function earned(log: Pick<XpEntry, 'amount' | 'stat'>[]): Res {
   return map((r) => Math.max(0, RES_FROM[r].reduce((n, s) => n + (byStat.get(s) ?? 0), 0)));
 }
 
-export const balance = (s: FortState, got: Res): Res => map((r) => Math.max(0, got[r] + s.delta[r]));
+/** Zůstatek surovin ve skladu. */
+export const balance = (s: FortState): Res => map((r) => Math.max(0, Math.floor(s.delta[r])));
+
+const COLLECTOR: Record<keyof Res, BuildingId> = { wood: 'sawmill', stone: 'quarry', crystal: 'mine' };
+export const collectorOf = (r: keyof Res) => COLLECTOR[r];
+/** Násobek sběru podle levelu Pily / Kamenolomu / Dolu. */
+export const collectMult = (s: FortState, r: keyof Res) => 1 + ((s.buildings[COLLECTOR[r]] ?? 1) - 1) * 0.1;
+
+/** Suroviny z XP, které čekají na sebrání (už s bonusem sběrné budovy). */
+export function pending(s: FortState, got: Res): Res {
+  const c = s.collected ?? got;
+  return map((r) => Math.floor(Math.max(0, got[r] - c[r]) * collectMult(s, r)));
+}
+
+/** Sebere čekající suroviny jednoho druhu (nebo všech). */
+export function collect(s: FortState, got: Res, now: number, only?: keyof Res): FortState {
+  const p = pending(s, got);
+  const c = { ...(s.collected ?? got) };
+  const delta = { ...s.delta };
+  for (const r of RES_KEYS) {
+    if (only && r !== only) continue;
+    delta[r] += p[r];
+    c[r] = Math.max(c[r], got[r]);
+  }
+  return { ...s, delta, collected: c, collectedAt: now };
+}
+
+// ---------- denní truhla ----------
+
+/** Odměna z denní truhly – stejná pro daný den na všech zařízeních. */
+export function chestReward(hall: number, date: string): Res {
+  const r = (salt: string) => dayRoll(date + salt);
+  return {
+    wood: Math.round((40 + r('w') * 80) * (1 + (hall - 1) * 0.5)),
+    stone: Math.round((40 + r('s') * 80) * (1 + (hall - 1) * 0.5)),
+    crystal: Math.round(2 + r('c') * 6 + (hall - 1)),
+  };
+}
+/** Truhlu jde otevřít jednou denně – ale jen když už má hráč ten den nějaké XP. */
+export const canOpenChest = (s: FortState, today: string, activeToday: boolean) => activeToday && s.chestDay !== today;
+export function openChest(s: FortState, today: string): { state: FortState; reward: Res } {
+  const reward = chestReward(s.buildings.hall, today);
+  return { state: { ...s, chestDay: today, delta: add(s.delta, reward) }, reward };
+}
+
+// ---------- posílení ze skutečného života ----------
+
+export interface LifeBuff { id: string; icon: string; title: string; text: string; atk?: number; hp?: number; kinds?: string[] }
+export interface LifeToday { trained: boolean; mind: boolean; discipline: boolean; streak: number }
+
+/** Co jsi dnes udělal ve skutečnosti → posílení armády v bitvě. */
+export function lifeBuffs(t: LifeToday): LifeBuff[] {
+  const out: LifeBuff[] = [];
+  if (t.trained) out.push({ id: 'trained', icon: '💪', title: 'Po tréninku', text: 'Dnes jsi trénoval – celá armáda +15 % útok', atk: 0.15 });
+  if (t.mind) out.push({ id: 'mind', icon: '🧠', title: 'Bystrá mysl', text: 'Dnes ses učil – mágové a lučištníci +25 % útok', atk: 0.25, kinds: ['mage', 'archer'] });
+  if (t.discipline) out.push({ id: 'dis', icon: '🛡️', title: 'Disciplína', text: 'Dnešní disciplína – celá armáda +10 % životy', hp: 0.1 });
+  if (t.streak >= 30) out.push({ id: 'streak', icon: '☄️', title: `Série ${t.streak} dní`, text: 'Hrdina +50 % životy a útok', hp: 0.5, atk: 0.5, kinds: ['hero'] });
+  else if (t.streak >= 7) out.push({ id: 'streak', icon: '🔥', title: `Série ${t.streak} dní`, text: 'Hrdina +25 % životy a útok', hp: 0.25, atk: 0.25, kinds: ['hero'] });
+  return out;
+}
 export const canAfford = (bal: Res, cost: Res) => RES_KEYS.every((r) => bal[r] >= cost[r]);
 
 export function maxLevel(s: FortState, id: BuildingId): number {
@@ -97,11 +169,16 @@ export function train(s: FortState, id: UnitId, bal: Res, statLevels: Record<Sta
 export const modifiers = (s: FortState) => ({ atk: 1 + (s.buildings.forge - 1) * 0.08, hp: 1 + (s.buildings.academy - 1) * 0.08 });
 
 /** Armáda do bitvy – hrdina a všichni vycvičení vojáci (s bonusy z Kovárny a Akademie). */
-export function battleArmy(s: FortState, heroLevel: number, heroIcon = '🦸'): ArmyUnit[] {
+export function battleArmy(s: FortState, heroLevel: number, buffs: LifeBuff[] = [], heroIcon = '🦸'): ArmyUnit[] {
   const m = modifiers(s);
-  const boost = (st: { hp: number; atk: number; move: number; range: number }) => ({ ...st, hp: Math.round(st.hp * m.hp), atk: Math.round(st.atk * m.atk) });
-  const list: ArmyUnit[] = [{ kind: 'hero', name: 'Hrdina', icon: heroIcon, stats: boost(heroStats(heroLevel)) }];
-  for (const u of UNITS) for (let i = 0; i < s.army[u.id]; i++) list.push({ kind: u.id, name: u.name, icon: u.icon, stats: boost(u) });
+  const boost = (kind: string, st: { hp: number; atk: number; move: number; range: number }) => {
+    const mine = buffs.filter((b) => !b.kinds || b.kinds.includes(kind));
+    const atk = mine.reduce((k, b) => k + (b.atk ?? 0), 0);
+    const hp = mine.reduce((k, b) => k + (b.hp ?? 0), 0);
+    return { ...st, hp: Math.round(st.hp * m.hp * (1 + hp)), atk: Math.round(st.atk * m.atk * (1 + atk)) };
+  };
+  const list: ArmyUnit[] = [{ kind: 'hero', name: 'Hrdina', icon: heroIcon, stats: boost('hero', heroStats(heroLevel)) }];
+  for (const u of UNITS) for (let i = 0; i < s.army[u.id]; i++) list.push({ kind: u.id, name: u.name, icon: u.icon, stats: boost(u.id, u) });
   return list;
 }
 
@@ -138,7 +215,7 @@ export interface Raid { date: string; win: boolean; strength: number; defense: n
  * Vyhodnotí nájezdy za dny bez jediného XP (od posledního vyhodnocení do včerejška).
  * Prohra = nájezdníci ukradnou 25 % dřeva a kamene nad ochranu skladu. Budovy ani vojáci se neztrácí.
  */
-export function resolveRaids(s0: FortState, got: Res, activeDays: Set<string>, today: string): { state: FortState; raids: Raid[] } {
+export function resolveRaids(s0: FortState, activeDays: Set<string>, today: string): { state: FortState; raids: Raid[] } {
   let s = s0;
   const raids: Raid[] = [];
   let streak = 0;
@@ -155,7 +232,7 @@ export function resolveRaids(s0: FortState, got: Res, activeDays: Set<string>, t
     const win = def * (0.75 + dayRoll(d) * 0.5) >= strength;
     let stolen = ZERO;
     if (!win) {
-      const bal = balance(s, got);
+      const bal = balance(s);
       const safe = storageSafe(s.buildings.storage);
       stolen = { wood: Math.floor(Math.max(0, bal.wood - safe) * 0.25), stone: Math.floor(Math.max(0, bal.stone - safe) * 0.25), crystal: 0 };
       s = { ...s, delta: add(s.delta, stolen, -1) };

@@ -1,10 +1,12 @@
 // Tahová bitva na mřížce 7 × 9. Hráč dole, nepřátelé nahoře.
 // Každá jednotka se za tah může jednou pohnout a jednou zaútočit (útokem tah končí).
+// Všechny akce zapisují události (pohyb, útok, smrt…), podle kterých UI přehrává animace.
 import { ENEMIES, campScale, type Camp, type UnitStats } from './data';
 
 export const W = 7;
 export const H = 9;
 export const MAX_TURNS = 30;
+export const HERO_COOLDOWN = 3;
 
 export interface BUnit extends UnitStats {
   id: string;
@@ -17,18 +19,41 @@ export interface BUnit extends UnitStats {
   y: number;
   moved: boolean;
   acted: boolean;
+  steps: number; // kolik polí ušla tento tah (rytíř: nájezd)
+  cd: number; // hrdina: kolik kol zbývá do další schopnosti
 }
+
+export type Fx = 'melee' | 'arrow' | 'magic' | 'fire' | 'strike';
+export type BattleEvent =
+  | { t: 'move'; id: string; x: number; y: number }
+  | { t: 'hit'; id: string; target: string; dmg: number; fx: Fx; crit?: boolean; note?: string }
+  | { t: 'heal'; id: string; amount: number }
+  | { t: 'death'; id: string };
 
 export interface Battle {
   units: BUnit[];
   rocks: string[]; // 'x,y'
   turn: number;
   log: string[];
+  events: BattleEvent[];
   over: 'win' | 'lose' | null;
   seed: number;
 }
 
 export interface ArmyUnit { kind: string; name: string; icon: string; stats: UnitStats }
+
+/** Schopnosti jednotek – popisy pro UI. */
+export const TRAITS: Record<string, string> = {
+  hero: `⚡ Mocný úder: dvojnásobné poškození cíli a polovina nepřátelům kolem (jednou za ${HERO_COOLDOWN} kola)`,
+  warrior: '🛡️ Štít: o 30 % menší poškození od střelců a kouzel',
+  archer: '🎯 Odstřelovač: +30 % poškození na cíl 3 pole daleko',
+  mage: '🔥 Ohnivá koule: zasáhne i nepřátele vedle cíle (50 %)',
+  knight: '🐎 Nájezd: +50 % poškození, když se předtím pohne aspoň o 3 pole',
+  troll: '💚 Regenerace: každé kolo si vyléčí 10 % životů',
+  dragon: '🔥 Dračí dech: zasáhne i jednotky vedle cíle (50 %)',
+  shaman: '✨ Léčitel: když nemá na koho útočit, vyléčí spojence',
+  darkKnight: '🐎 Nájezd: +50 % poškození po pohybu o 3 pole',
+};
 
 /** Deterministický generátor (mulberry32) – stav je v bitvě, takže jde bitvu uložit a obnovit. */
 export function rand(b: Battle): number {
@@ -44,6 +69,7 @@ const key = (x: number, y: number) => `${x},${y}`;
 const inside = (x: number, y: number) => x >= 0 && y >= 0 && x < W && y < H;
 const alive = (b: Battle, side?: BUnit['side']) => b.units.filter((u) => u.hp > 0 && (!side || u.side === side));
 export const unitAt = (b: Battle, x: number, y: number) => b.units.find((u) => u.hp > 0 && u.x === x && u.y === y);
+const clone = (b: Battle): Battle => structuredClone(b);
 
 /** Rozestavení do řad: bojovníci na blízko vepředu, střelci vzadu, od středu do stran. */
 function place(list: ArmyUnit[], front: number, back: number, rocks: Set<string>): { x: number; y: number }[] {
@@ -75,17 +101,17 @@ export function createBattle(army: ArmyUnit[], camp: Camp, seed = Date.now()): B
   const mk = (u: ArmyUnit, side: BUnit['side'], i: number, p: { x: number; y: number }): BUnit => ({
     id: `${side}${i}`, side, kind: u.kind, name: u.name, icon: u.icon,
     hp: u.stats.hp, maxHp: u.stats.hp, atk: u.stats.atk, move: u.stats.move, range: u.stats.range,
-    x: p.x, y: p.y, moved: false, acted: false,
+    x: p.x, y: p.y, moved: false, acted: false, steps: 0, cd: 0,
   });
   return {
     units: [...army.map((u, i) => mk(u, 'me', i, mePos[i])), ...foes.map((u, i) => mk(u, 'foe', i, foePos[i]))],
-    rocks: [...rocks], turn: 1, log: [], over: null, seed,
+    rocks: [...rocks], turn: 1, log: [], events: [], over: null, seed,
   };
 }
 
 /** Pole, kam se jednotka může tento tah dostat (včetně místa, kde stojí). */
-export function reachable(b: Battle, u: BUnit): { x: number; y: number }[] {
-  if (u.moved || u.acted) return [{ x: u.x, y: u.y }];
+export function reachable(b: Battle, u: BUnit): { x: number; y: number; d: number }[] {
+  if (u.moved || u.acted) return [{ x: u.x, y: u.y, d: 0 }];
   const rocks = new Set(b.rocks);
   const seen = new Map<string, number>([[key(u.x, u.y), 0]]);
   const queue = [{ x: u.x, y: u.y, d: 0 }];
@@ -101,9 +127,9 @@ export function reachable(b: Battle, u: BUnit): { x: number; y: number }[] {
       queue.push({ x: nx, y: ny, d: c.d + 1 });
     }
   }
-  return [...seen.keys()].map((k) => {
+  return [...seen.entries()].map(([k, d]) => {
     const [x, y] = k.split(',').map(Number);
-    return { x, y };
+    return { x, y, d };
   });
 }
 
@@ -112,38 +138,75 @@ export function targetsFrom(b: Battle, u: BUnit, x = u.x, y = u.y): BUnit[] {
   return alive(b).filter((t) => t.side !== u.side && dist(t, { x, y }) <= u.range);
 }
 
-const clone = (b: Battle): Battle => structuredClone(b);
-
 function checkOver(b: Battle) {
   if (!alive(b, 'foe').length) b.over = 'win';
   else if (!alive(b, 'me').length) b.over = 'lose';
 }
 
-function hit(b: Battle, a: BUnit, t: BUnit) {
-  const dmg = Math.max(1, Math.round(a.atk * (0.85 + rand(b) * 0.3)));
-  t.hp = Math.max(0, t.hp - dmg);
-  b.log.push(`${a.icon} ${a.name} → ${t.icon} ${t.name}: −${dmg}${t.hp === 0 ? ' ☠️' : ''}`);
+function log(b: Battle, line: string) {
+  b.log.push(line);
   if (b.log.length > 60) b.log.splice(0, b.log.length - 60);
+}
+
+const fxOf = (u: BUnit): Fx => (u.kind === 'mage' || u.kind === 'shaman' ? 'magic' : u.kind === 'dragon' ? 'fire' : u.range > 1 ? 'arrow' : 'melee');
+
+/** Poškození jednoho zásahu (schopnosti, kritický zásah, štít). */
+function damage(b: Battle, a: BUnit, t: BUnit, mult: number): { dmg: number; crit: boolean; note?: string } {
+  let m = mult * (0.85 + rand(b) * 0.3);
+  let note: string | undefined;
+  if ((a.kind === 'knight' || a.kind === 'darkKnight') && a.steps >= 3) {
+    m *= 1.5;
+    note = 'Nájezd!';
+  }
+  if (a.kind === 'archer' && dist(a, t) >= 3) {
+    m *= 1.3;
+    note = 'Přesná střela!';
+  }
+  if (t.kind === 'warrior' && a.range > 1) m *= 0.7;
+  const crit = rand(b) < 0.1;
+  if (crit) m *= 1.5;
+  return { dmg: Math.max(1, Math.round(a.atk * m)), crit, note };
+}
+
+function applyHit(b: Battle, a: BUnit, t: BUnit, mult: number, fx: Fx) {
+  const { dmg, crit, note } = damage(b, a, t, mult);
+  t.hp = Math.max(0, t.hp - dmg);
+  b.events.push({ t: 'hit', id: a.id, target: t.id, dmg, fx, crit, note });
+  log(b, `${a.icon} ${a.name} → ${t.icon} ${t.name}: −${dmg}${crit ? ' (kritický zásah!)' : ''}${note ? ` (${note})` : ''}${t.hp === 0 ? ' ☠️' : ''}`);
+  if (t.hp === 0) b.events.push({ t: 'death', id: t.id });
+}
+
+/** Útok včetně plošného poškození (mág, drak, Mocný úder). */
+function strike(b: Battle, a: BUnit, t: BUnit, power = false) {
+  const splash = power || a.kind === 'mage' || a.kind === 'dragon';
+  const around = splash ? alive(b).filter((o) => o.side === t.side && o.id !== t.id && dist(o, t) === 1) : [];
+  applyHit(b, a, t, power ? 2 : 1, power ? 'strike' : fxOf(a));
+  for (const o of around) applyHit(b, a, o, power ? 0.5 : 0.5, power ? 'strike' : fxOf(a));
 }
 
 /** Pohyb hráčovy jednotky. */
 export function moveUnit(b0: Battle, id: string, x: number, y: number): Battle {
   const b = clone(b0);
   const u = b.units.find((v) => v.id === id)!;
-  if (b.over || u.side !== 'me' || !reachable(b, u).some((p) => p.x === x && p.y === y)) return b0;
+  const to = reachable(b, u).find((p) => p.x === x && p.y === y);
+  if (b.over || u.side !== 'me' || !to) return b0;
   u.x = x;
   u.y = y;
+  u.steps = to.d;
   u.moved = true;
+  b.events.push({ t: 'move', id, x, y });
   return b;
 }
 
-/** Útok hráčovy jednotky – tím její tah končí. */
-export function attackUnit(b0: Battle, id: string, targetId: string): Battle {
+/** Útok hráčovy jednotky – tím její tah končí. `power` = Mocný úder hrdiny. */
+export function attackUnit(b0: Battle, id: string, targetId: string, power = false): Battle {
   const b = clone(b0);
   const u = b.units.find((v) => v.id === id)!;
   const t = b.units.find((v) => v.id === targetId)!;
   if (b.over || u.side !== 'me' || u.acted || u.hp <= 0 || t.hp <= 0 || dist(u, t) > u.range) return b0;
-  hit(b, u, t);
+  if (power && (u.kind !== 'hero' || u.cd > 0)) return b0;
+  strike(b, u, t, power);
+  if (power) u.cd = HERO_COOLDOWN;
   u.acted = true;
   u.moved = true;
   checkOver(b);
@@ -153,57 +216,95 @@ export function attackUnit(b0: Battle, id: string, targetId: string): Battle {
 /** Tah jedné jednotky podle jednoduché AI: zaútoč, nebo se přibliž a zaútoč. */
 function aiAct(b: Battle, u: BUnit) {
   const enemies = alive(b).filter((t) => t.side !== u.side);
-  if (!enemies.length) return;
+  if (!enemies.length || u.acted) return;
   const weakest = (list: BUnit[]) => list.sort((p, q) => p.hp - q.hp || dist(u, p) - dist(u, q))[0];
   let targets = targetsFrom(b, u);
-  if (!targets.length) {
+  if (!targets.length && !u.moved) {
     // nejlepší pole: odkud dosáhne na cíl (střelci co nejdál), jinak co nejblíž k nejbližšímu nepříteli
     const options = reachable(b, u).map((p) => {
       const inRange = enemies.filter((t) => dist(t, p) <= u.range);
       const near = Math.min(...enemies.map((t) => dist(t, p)));
-      return { p, score: inRange.length ? 1000 + (u.range > 1 ? near : -near) : -near };
+      return { p, score: inRange.length ? 1000 + (u.range > 1 ? near : -near) + p.d * 0.01 : -near };
     });
     options.sort((a, c) => c.score - a.score);
-    u.x = options[0].p.x;
-    u.y = options[0].p.y;
+    const best = options[0].p;
+    if (best.x !== u.x || best.y !== u.y) {
+      u.x = best.x;
+      u.y = best.y;
+      u.steps = best.d;
+      b.events.push({ t: 'move', id: u.id, x: u.x, y: u.y });
+    }
     targets = targetsFrom(b, u);
   }
   u.moved = true;
   if (targets.length) {
-    hit(b, u, weakest(targets));
+    const t = weakest(targets);
+    // hrdina za AI použije Mocný úder, když je připravený
+    strike(b, u, t, u.kind === 'hero' && u.cd === 0);
+    if (u.kind === 'hero' && u.cd === 0) u.cd = HERO_COOLDOWN;
     u.acted = true;
+  } else if (u.kind === 'shaman') {
+    // šaman bez cíle léčí nejzraněnějšího spojence
+    const hurt = alive(b, u.side).filter((o) => o.hp < o.maxHp).sort((p, q) => p.hp / p.maxHp - q.hp / q.maxHp)[0];
+    if (hurt) {
+      const amount = Math.min(hurt.maxHp - hurt.hp, Math.round(u.atk * 1.2));
+      hurt.hp += amount;
+      b.events.push({ t: 'heal', id: hurt.id, amount });
+      log(b, `${u.icon} ${u.name} léčí ${hurt.icon} ${hurt.name}: +${amount}`);
+      u.acted = true;
+    }
   }
 }
 
-/** Konec tahu hráče: táhnou nepřátelé, pak začne další kolo. */
-export function endTurn(b0: Battle): Battle {
+/** Pořadí nepřátel v jejich tahu (zepředu dozadu). */
+export const enemyOrder = (b: Battle) => alive(b, 'foe').sort((p, q) => q.y - p.y).map((u) => u.id);
+
+/** Tah jednoho nepřítele (pro animované přehrávání). */
+export function enemyStep(b0: Battle, id: string): Battle {
+  const b = clone(b0);
+  const u = b.units.find((v) => v.id === id);
+  if (!u || u.hp <= 0 || b.over) return b0;
+  aiAct(b, u);
+  checkOver(b);
+  return b;
+}
+
+/** Začátek nového kola: regenerace, odpočet schopností, reset tahů. */
+export function newRound(b0: Battle): Battle {
   const b = clone(b0);
   if (b.over) return b;
-  for (const f of alive(b, 'foe').sort((p, q) => q.y - p.y)) {
-    if (b.over) break;
-    aiAct(b, f);
-    checkOver(b);
-  }
   for (const u of b.units) {
     u.moved = false;
     u.acted = false;
-  }
-  if (!b.over) {
-    b.turn++;
-    if (b.turn > MAX_TURNS) {
-      b.over = 'lose';
-      b.log.push('⏳ Došel čas – nepřátelé se ubránili.');
+    u.steps = 0;
+    if (u.cd > 0) u.cd--;
+    if (u.kind === 'troll' && u.hp > 0 && u.hp < u.maxHp) {
+      const amount = Math.min(u.maxHp - u.hp, Math.round(u.maxHp * 0.1));
+      u.hp += amount;
+      b.events.push({ t: 'heal', id: u.id, amount });
     }
+  }
+  b.turn++;
+  if (b.turn > MAX_TURNS) {
+    b.over = 'lose';
+    log(b, '⏳ Došel čas – nepřátelé se ubránili.');
   }
   return b;
 }
 
-/** Celý tah hráče za AI (pro test vyváženosti a tlačítko „Automaticky“). */
+/** Konec tahu hráče najednou: táhnou všichni nepřátelé a začne další kolo. */
+export function endTurn(b0: Battle): Battle {
+  let b = b0;
+  if (b.over) return b;
+  for (const id of enemyOrder(b)) b = enemyStep(b, id);
+  return newRound(b);
+}
+
+/** Celý tah hráče za AI (pro test vyváženosti a tlačítko „Auto“). */
 export function autoTurn(b0: Battle): Battle {
   const b = clone(b0);
   for (const u of alive(b, 'me').sort((p, q) => p.y - q.y)) {
     if (b.over) break;
-    if (u.acted) continue;
     aiAct(b, u);
     checkOver(b);
   }

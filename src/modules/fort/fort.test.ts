@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { attackUnit, autoTurn, createBattle, endTurn, H, moveUnit, reachable, stars, targetsFrom, type Battle } from './battle';
 import { CAMPS, buildingDef, unitDef } from './data';
 import {
-  applyBattle, balance, battleArmy, canTrain, canUpgrade, earned, finishUpgrade, newFort, resolveRaids, speedUp, speedUpCost,
-  startUpgrade, train, unlockedCamp, type FortState,
+  applyBattle, balance, battleArmy, canOpenChest, canTrain, canUpgrade, chestReward, collect, earned, finishUpgrade, lifeBuffs, newFort,
+  normalizeFort, openChest, pending, resolveRaids, speedUp, speedUpCost, startUpgrade, train, unlockedCamp, type FortState,
 } from './economy';
 
 const NOW = Date.parse('2026-10-26T12:00:00Z');
@@ -32,8 +32,8 @@ describe('pevnost – ekonomika', () => {
 
   it('stavba s časovačem, jeden stavitel, limit podle Radnice a urychlení', () => {
     let s = newFort(NOW, '2026-10-26');
-    const bal = balance(s, rich);
-    expect(canUpgrade(s, 'barracks', balance(s, { wood: 0, stone: 0, crystal: 0 }))).toEqual({ ok: true }); // startovní bonus stačí
+    const bal = rich;
+    expect(canUpgrade(s, 'barracks', balance(s))).toEqual({ ok: true }); // startovní bonus stačí
     expect(canUpgrade({ ...s, delta: { wood: 0, stone: 0, crystal: 0 } }, 'barracks', { wood: 0, stone: 0, crystal: 0 })).toMatchObject({ ok: false, reason: 'Nemáš dost surovin.' });
     s = startUpgrade(s, 'barracks', bal, NOW);
     expect(s.upgrade).toMatchObject({ id: 'barracks', to: 2, endsAt: NOW + 5 * 60_000 });
@@ -63,21 +63,67 @@ describe('pevnost – ekonomika', () => {
   });
 
   it('nájezdy jen za neaktivní dny, ochrana skladu, max 5 dní', () => {
-    const s = { ...newFort(NOW, '2026-10-20'), raidChecked: '2026-10-20' };
-    const got = { wood: 2000, stone: 300, crystal: 50 };
-    const r = resolveRaids(s, got, new Set(['2026-10-20', '2026-10-22']), '2026-10-24');
+    const s = { ...newFort(NOW, '2026-10-20'), raidChecked: '2026-10-20', delta: { wood: 2000, stone: 300, crystal: 50 } };
+    const r = resolveRaids(s, new Set(['2026-10-20', '2026-10-22']), '2026-10-24');
     expect(r.raids.map((x) => x.date)).toEqual(['2026-10-21', '2026-10-23']);
     expect(r.state.raidChecked).toBe('2026-10-24');
     for (const x of r.raids.filter((y) => !y.win)) expect(x.stolen.crystal).toBe(0);
     const lost = r.raids.filter((y) => !y.win);
-    if (lost.length) expect(balance(r.state, got).stone).toBeGreaterThanOrEqual(250);
-    expect(resolveRaids(r.state, got, new Set(), '2026-10-24').raids).toHaveLength(0);
-    expect(resolveRaids({ ...s, raidChecked: '2026-01-01', createdDate: '2026-01-01' }, got, new Set(), '2026-10-24').raids).toHaveLength(5);
+    if (lost.length) expect(balance(r.state).stone).toBeGreaterThanOrEqual(250);
+    expect(resolveRaids(r.state, new Set(), '2026-10-24').raids).toHaveLength(0);
+    expect(resolveRaids({ ...s, raidChecked: '2026-01-01', createdDate: '2026-01-01' }, new Set(), '2026-10-24').raids).toHaveLength(5);
   });
 
   it('nájezdy nezačnou před založením pevnosti', () => {
     const s = { ...newFort(NOW, '2026-10-24'), raidChecked: '2026-10-20' };
-    expect(resolveRaids(s, rich, new Set(), '2026-10-25').raids.map((x) => x.date)).toEqual(['2026-10-24']);
+    expect(resolveRaids(s, new Set(), '2026-10-25').raids.map((x) => x.date)).toEqual(['2026-10-24']);
+  });
+
+  it('sbírání surovin z XP s bonusem sběrných budov', () => {
+    let s = newFort(NOW, '2026-10-26', { wood: 500, stone: 100, crystal: 0 });
+    expect(pending(s, { wood: 500, stone: 100, crystal: 0 })).toEqual({ wood: 0, stone: 0, crystal: 0 });
+    const got = { wood: 600, stone: 150, crystal: 10 };
+    expect(pending(s, got)).toEqual({ wood: 100, stone: 50, crystal: 10 });
+    s = { ...s, buildings: { ...s.buildings, sawmill: 3 } };
+    expect(pending(s, got).wood).toBe(120);
+    const c = collect(s, got, NOW, 'wood');
+    expect(balance(c).wood).toBe(150 + 120);
+    expect(pending(c, got)).toEqual({ wood: 0, stone: 50, crystal: 10 });
+    const all = collect(c, got, NOW);
+    expect(balance(all)).toEqual({ wood: 270, stone: 200, crystal: 20 });
+  });
+
+  it('starší pevnost se převede bez ztráty surovin', () => {
+    const old = { ...newFort(NOW, '2026-10-01'), collected: undefined, collectedAt: undefined, buildings: { hall: 2, barracks: 2, walls: 1, tower: 1, forge: 1, academy: 1, storage: 1 } } as unknown as FortState;
+    const got = { wood: 300, stone: 200, crystal: 30 };
+    const n = normalizeFort(old, got, NOW);
+    expect(balance(n)).toEqual({ wood: 450, stone: 350, crystal: 40 });
+    expect(n.buildings).toMatchObject({ hall: 2, sawmill: 1, quarry: 1, mine: 1 });
+    expect(pending(n, got)).toEqual({ wood: 0, stone: 0, crystal: 0 });
+    expect(normalizeFort(n, got, NOW)).toEqual(n);
+  });
+
+  it('denní truhla jen jednou a jen s dnešním XP', () => {
+    const s = newFort(NOW, '2026-10-26');
+    expect(canOpenChest(s, '2026-10-26', false)).toBe(false);
+    expect(canOpenChest(s, '2026-10-26', true)).toBe(true);
+    const o = openChest(s, '2026-10-26');
+    expect(o.reward).toEqual(chestReward(1, '2026-10-26'));
+    expect(o.reward.wood).toBeGreaterThanOrEqual(40);
+    expect(canOpenChest(o.state, '2026-10-26', true)).toBe(false);
+    expect(chestReward(5, '2026-10-26').wood).toBeGreaterThan(o.reward.wood);
+  });
+
+  it('posílení ze skutečného života', () => {
+    const buffs = lifeBuffs({ trained: true, mind: true, discipline: false, streak: 8 });
+    expect(buffs.map((b) => b.id)).toEqual(['trained', 'mind', 'streak']);
+    const s = { ...newFort(NOW, '2026-10-26'), army: { warrior: 1, archer: 1, mage: 0, knight: 0 } };
+    const plain = battleArmy(s, 5);
+    const boosted = battleArmy(s, 5, buffs);
+    expect(boosted[1].stats.atk).toBe(Math.round(plain[1].stats.atk * 1.15)); // válečník: jen trénink
+    expect(boosted[2].stats.atk).toBe(Math.round(plain[2].stats.atk * 1.4)); // lučištník: trénink + mysl
+    expect(boosted[0].stats.hp).toBe(Math.round(plain[0].stats.hp * 1.25)); // hrdina: série
+    expect(lifeBuffs({ trained: false, mind: false, discipline: false, streak: 2 })).toEqual([]);
   });
 });
 

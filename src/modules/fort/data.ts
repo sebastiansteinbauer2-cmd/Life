@@ -61,6 +61,24 @@ export const BUILDINGS: BuildingDef[] = [
     effect: (l) => `Obrana ${defenseFrom('tower', l)}`,
   },
   {
+    id: 'sawmill', name: 'Pila', icon: '🪚', maxLevel: 9,
+    text: 'Zpracovává dřevo z tvých tréninků. Vyšší level = víc dřeva za každé XP.',
+    cost: (to) => ({ wood: grow(50, to), stone: grow(110, to), crystal: 0 }),
+    effect: (l) => `Dřevo +${(l - 1) * 10} %`,
+  },
+  {
+    id: 'quarry', name: 'Kamenolom', icon: '⛏️', maxLevel: 9,
+    text: 'Těží kámen z tvého učení. Vyšší level = víc kamene za každé XP.',
+    cost: (to) => ({ wood: grow(110, to), stone: grow(50, to), crystal: 0 }),
+    effect: (l) => `Kámen +${(l - 1) * 10} %`,
+  },
+  {
+    id: 'mine', name: 'Krystalový důl', icon: '💎', maxLevel: 9,
+    text: 'Krystaly z tvé disciplíny. Vyšší level = víc krystalů za každé XP.',
+    cost: (to) => ({ wood: grow(120, to), stone: grow(120, to), crystal: grow(8, to, 1.6) }),
+    effect: (l) => `Krystaly +${(l - 1) * 10} %`,
+  },
+  {
     id: 'storage', name: 'Sklad', icon: '🏚️', maxLevel: 9,
     text: 'Suroviny ve skladu nájezdníci neukradnou.',
     cost: (to) => ({ wood: grow(100, to), stone: grow(100, to), crystal: 0 }),

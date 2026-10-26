@@ -305,7 +305,7 @@ export interface Collections {
 
 // ---------- Pevnost hrdiny ----------
 export type FortRes = { wood: number; stone: number; crystal: number };
-export type FortBuildingId = 'hall' | 'barracks' | 'walls' | 'tower' | 'forge' | 'academy' | 'storage';
+export type FortBuildingId = 'hall' | 'barracks' | 'walls' | 'tower' | 'forge' | 'academy' | 'storage' | 'sawmill' | 'quarry' | 'mine';
 export type FortUnitId = 'warrior' | 'archer' | 'mage' | 'knight';
 
 export interface FortState {
@@ -318,6 +318,9 @@ export interface FortState {
   army: Record<FortUnitId, number>;
   camps: Record<string, number>; // id výpravy → nejlepší počet hvězd
   raidChecked: string; // do kterého dne (bez něj) už jsou nájezdy vyhodnocené
+  collected?: FortRes; // kolik surovin z XP už bylo sebráno (zbytek čeká v bublinách nad budovami)
+  collectedAt?: number; // kdy naposledy
+  chestDay?: string; // kdy byla naposledy otevřená denní truhla
 }
 
 export interface FortLog {
