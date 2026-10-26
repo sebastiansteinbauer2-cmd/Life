@@ -15,9 +15,9 @@ export default function WorldMap() {
   const p = useProfile();
   const [open, setOpen] = useState<Castle | null>(null);
   const castles = useQuery(async () => {
-    const [boss, acts, snaps, books, attempts, meta] = await Promise.all([
+    const [boss, acts, snaps, books, attempts, meta, fort] = await Promise.all([
       store.col('bossResults').all(), store.col('activities').all(), store.col('financeSnapshots').all(),
-      store.col('readBooks').all(), store.col('codeAttempts').all(), store.col('meta').all(),
+      store.col('readBooks').all(), store.col('codeAttempts').all(), store.col('meta').all(), store.col('fort').get('me'),
     ]);
     return buildCastles({
       profile: p,
@@ -28,6 +28,7 @@ export default function WorldMap() {
       codeSolved: solvedIds(attempts).size,
       codeTotal: PY_TASKS.length,
       budgetMonths: meta.filter((m) => m.id.startsWith('budgetMonth:') && m.value === true).length,
+      fortCamps: fort ? Object.values(fort.camps).filter((s) => s > 0).length : 0,
       today: dateKey(),
     });
   }, [p]);

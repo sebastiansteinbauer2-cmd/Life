@@ -5,6 +5,7 @@ import { AddQuestModal, QuestList } from '../components/Quests';
 import { PixelAvatar } from '../components/PixelAvatar';
 import { MiniBar, XpBar } from '../components/ui';
 import { ACHIEVEMENTS } from '../game/achievements';
+import FortCard from '../modules/fort/FortCard';
 import { MODULES, STATS, levelFromXp, nextTitle, titleForLevel, titleTier } from '../game/xp';
 import { parseDateKey } from '../lib/date';
 import { planForDate } from '../modules/training/plan';
@@ -181,6 +182,8 @@ export default function Home() {
           <span className="small muted">›</span>
         </a>
       )}
+
+      <FortCard />
 
       <a href="#/map" className="panel row" style={{ textDecoration: 'none', color: 'var(--text)', marginTop: 12 }}>
         <span style={{ fontSize: '1.6rem' }}>🗺️</span>

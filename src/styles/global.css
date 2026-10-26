@@ -29,6 +29,7 @@
   --m-budget: #34d399;
   --m-code: #f472b6;
   --m-reading: #fb923c;
+  --m-fort: #a3e635;
   /* barvy obtížnosti */
   --d-easy: #4ade80;
   --d-medium: #60a5fa;
@@ -623,3 +624,55 @@ code { font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace; 
 .world-hero { position: absolute; transform: translate(-50%, -50%); filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.6)); animation: hero-bob 1.6s ease-in-out infinite; }
 @keyframes hero-bob { 50% { transform: translate(-50%, calc(-50% - 5px)); } }
 @media (prefers-reduced-motion: reduce) { .world-hero { animation: none; } }
+
+/* ---------- Pevnost ---------- */
+.res-bar { display: flex; gap: 14px; justify-content: center; margin: -4px 0 10px; font-size: 0.95rem; flex-wrap: wrap; }
+.fort-base {
+  position: relative; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 46px 12px 14px;
+  border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 12px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(163, 230, 53, 0.18), transparent 60%),
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.02) 0 8px, transparent 8px 16px),
+    #16241a;
+}
+.fort-hero { position: absolute; top: 6px; left: 50%; transform: translateX(-50%); }
+.fort-bld {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 4px 8px;
+  border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.08); background: rgba(0, 0, 0, 0.35); color: var(--text);
+}
+.fort-bld .ic { font-size: 2rem; line-height: 1.1; }
+.fort-bld .nm { font-size: 0.72rem; text-align: center; }
+.fort-bld .lv {
+  position: absolute; top: 4px; left: 4px; min-width: 20px; height: 20px; border-radius: 10px; background: var(--gold); color: #241900;
+  font-family: var(--font-pixel); font-size: 0.75rem; display: grid; place-items: center; padding: 0 4px;
+}
+.fort-bld .up { position: absolute; top: 4px; right: 6px; color: var(--green); font-weight: 700; }
+.fort-bld .tm { font-size: 0.68rem; color: var(--gold); }
+.fort-bld.building { border-color: var(--gold); box-shadow: 0 0 12px rgba(245, 197, 66, 0.35); }
+.camp-list { display: flex; flex-direction: column; gap: 8px; }
+.camp { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--panel); color: var(--text); }
+.camp .ic { font-size: 1.8rem; }
+.camp.next { border-color: var(--gold); box-shadow: 0 0 10px rgba(245, 197, 66, 0.3); }
+.camp.locked { opacity: 0.45; }
+.camp .stars { white-space: nowrap; }
+.battle-grid {
+  display: grid; gap: 2px; margin: 10px auto 0; max-width: 430px; padding: 4px; border-radius: 10px;
+  background: #1f3322; border: 1px solid var(--border);
+}
+.battle-grid .cell {
+  position: relative; aspect-ratio: 1; padding: 0; border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 6px;
+  background: #2a4a2e; display: grid; place-items: center; min-width: 0; min-height: 0;
+}
+.battle-grid .cell .ic { font-size: clamp(1rem, 5.5vw, 1.6rem); line-height: 1; display: grid; place-items: center; }
+.battle-grid .cell.rock { background: #3a3a2a; }
+.battle-grid .cell.move { background: rgba(96, 165, 250, 0.45); }
+.battle-grid .cell.target { box-shadow: inset 0 0 0 3px var(--red); }
+.battle-grid .cell.sel { box-shadow: inset 0 0 0 3px var(--gold); }
+.battle-grid .cell.me { background: #24406a; }
+.battle-grid .cell.foe { background: #5a2626; }
+.battle-grid .cell.done { opacity: 0.6; }
+.battle-grid .cell .hp { position: absolute; left: 3px; right: 3px; bottom: 2px; height: 4px; background: rgba(0, 0, 0, 0.5); border-radius: 2px; overflow: hidden; }
+.battle-grid .cell .hp > span { display: block; height: 100%; background: var(--green); }
+.battle-grid .cell.foe .hp > span { background: var(--red); }
+.battle-info { min-height: 2.6em; margin-top: 8px; }
+.battle-log { margin-top: 10px; color: var(--muted); font-family: ui-monospace, monospace; font-size: 0.75rem; }

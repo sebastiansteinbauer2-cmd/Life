@@ -2,7 +2,7 @@
 // aby šly snadno ukládat do IndexedDB i do budoucí cloudové databáze (Supabase).
 
 export type StatId = 'int' | 'str' | 'dis' | 'chess' | 'end';
-export type ModuleId = 'core' | 'math' | 'training' | 'chess' | 'discover' | 'finance' | 'ironman' | 'budget' | 'code' | 'reading';
+export type ModuleId = 'core' | 'math' | 'training' | 'chess' | 'discover' | 'finance' | 'ironman' | 'budget' | 'code' | 'reading' | 'fort';
 export type Difficulty = 'easy' | 'medium' | 'hard' | 'epic';
 export type Recurrence = 'once' | 'daily' | 'weekly' | 'monthly';
 export type MathLevel = 'zaklad' | 'rozsireny' | 'fit';
@@ -299,6 +299,36 @@ export interface Collections {
   codeAttempts: CodeAttempt;
   readBooks: ReadBook;
   readLog: ReadLogEntry;
+  fort: FortState;
+  fortLog: FortLog;
+}
+
+// ---------- Pevnost hrdiny ----------
+export type FortRes = { wood: number; stone: number; crystal: number };
+export type FortBuildingId = 'hall' | 'barracks' | 'walls' | 'tower' | 'forge' | 'academy' | 'storage';
+export type FortUnitId = 'warrior' | 'archer' | 'mage' | 'knight';
+
+export interface FortState {
+  id: 'me';
+  createdAt: number;
+  createdDate: string;
+  delta: FortRes; // kořist + startovní bonus − útraty − ztráty při nájezdech
+  buildings: Record<FortBuildingId, number>;
+  upgrade: { id: FortBuildingId; to: number; endsAt: number } | null;
+  army: Record<FortUnitId, number>;
+  camps: Record<string, number>; // id výpravy → nejlepší počet hvězd
+  raidChecked: string; // do kterého dne (bez něj) už jsou nájezdy vyhodnocené
+}
+
+export interface FortLog {
+  id: string;
+  ts: number;
+  date: string;
+  kind: 'battle' | 'raid';
+  title: string;
+  win: boolean;
+  stars?: number;
+  res: FortRes; // změna surovin (+ kořist, − ztráta)
 }
 
 /** Výdaj nebo příjem v rozpočtu (Kč). */
@@ -355,4 +385,5 @@ export const COLLECTION_NAMES: CollectionName[] = [
   'financeSnapshots', 'financeTx', 'financeDividends',
   'activities',
   'expenses', 'codeAttempts', 'readBooks', 'readLog',
+  'fort', 'fortLog',
 ];

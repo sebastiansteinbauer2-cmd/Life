@@ -7,7 +7,7 @@ describe('mapa světa', () => {
 
   it('obsahuje všechny cíle a Legendu na konci', () => {
     const c = buildCastles(base);
-    expect(c.map((x) => x.id)).toEqual(expect.arrayContaining(['exam', 'ironman', 'fin-porsche', 'fin-income-50k', 'reading', 'code', 'budget', 'legend']));
+    expect(c.map((x) => x.id)).toEqual(expect.arrayContaining(['exam', 'ironman', 'fin-porsche', 'fin-income-50k', 'reading', 'code', 'budget', 'fort', 'legend']));
     expect(c[c.length - 1].id).toBe('legend');
     expect(c.every((x) => x.progress >= 0 && x.progress <= 1)).toBe(true);
   });

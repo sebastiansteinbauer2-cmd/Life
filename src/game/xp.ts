@@ -81,7 +81,7 @@ export const MODULES: { id: ModuleId; label: string; icon: string; route: string
 ];
 export const MODULE_LABEL: Record<ModuleId, string> = {
   core: 'Obecné', math: 'Matematika', training: 'Trénink', chess: 'Šachy', discover: 'Objevy', finance: 'Finance', ironman: 'Ironman',
-  budget: 'Rozpočet', code: 'Programování', reading: 'Čtení',
+  budget: 'Rozpočet', code: 'Programování', reading: 'Čtení', fort: 'Pevnost',
 };
 
 /** Bonusy za sérii dní v řadě. */

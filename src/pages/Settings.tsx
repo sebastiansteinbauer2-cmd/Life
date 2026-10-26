@@ -105,7 +105,7 @@ export default function Settings() {
         <h2 style={{ marginTop: 0 }}>Spodní lišta</h2>
         <p className="small muted">Vyber až 4 sekce, které chceš mít dole. Ostatní najdeš pod „⋯ Více“.</p>
         <div className="row wrap" style={{ gap: 6 }}>
-          {MODULES.map((m) => {
+          {[...MODULES, { id: 'fort' as ModuleId, label: 'Pevnost', icon: '🏰' }].map((m) => {
             const on = p.navPinned.includes(m.id);
             const toggle = () => {
               const next: ModuleId[] = on ? p.navPinned.filter((x) => x !== m.id) : [...p.navPinned, m.id];

@@ -23,6 +23,7 @@ export interface MapData {
   codeSolved: number;
   codeTotal: number;
   budgetMonths: number;
+  fortCamps?: number; // dobyté výpravy v Pevnosti (z 12)
   today: string;
 }
 
@@ -65,6 +66,10 @@ export function buildCastles(d: MapData): Castle[] {
   castles.push({
     id: 'budget', icon: '🏦', title: 'Pán peněz', route: '/budget',
     progress: clamp(d.budgetMonths / 6), detail: `${d.budgetMonths} z 6 měsíců v rozpočtu`,
+  });
+  castles.push({
+    id: 'fort', icon: '🐉', title: 'Drakobijec', route: '/fort/campaign',
+    progress: clamp((d.fortCamps ?? 0) / 12), detail: `Dobyto ${d.fortCamps ?? 0} z 12 výprav v Pevnosti`,
   });
   const lvl = levelFromXp(p.xp).level;
   castles.push({

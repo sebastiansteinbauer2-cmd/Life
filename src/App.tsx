@@ -25,6 +25,7 @@ const IronmanModule = lazy(() => import('./modules/ironman/IronmanPages'));
 const BudgetModule = lazy(() => import('./modules/budget/BudgetPages'));
 const ReadingModule = lazy(() => import('./modules/reading/ReadingPages'));
 const CodeModule = lazy(() => import('./modules/code/CodePages'));
+const FortModule = lazy(() => import('./modules/fort/FortPages'));
 
 /** Všechny sekce – do spodní lišty jdou 4 vybrané (Nastavení), zbytek je pod „Více“. */
 const SECTIONS: { id: ModuleId; path: string; icon: string; label: string }[] = [
@@ -35,6 +36,7 @@ const SECTIONS: { id: ModuleId; path: string; icon: string; label: string }[] = 
   { id: 'discover', path: '/discover', icon: '🔭', label: 'Objevy' },
   { id: 'finance', path: '/finance', icon: '💰', label: 'Finance' },
   { id: 'budget', path: '/budget', icon: '💸', label: 'Rozpočet' },
+  { id: 'fort', path: '/fort', icon: '🏰', label: 'Pevnost' },
   { id: 'code', path: '/code', icon: '💻', label: 'Kód' },
   { id: 'reading', path: '/reading', icon: '📚', label: 'Čtení' },
 ];
@@ -56,6 +58,7 @@ function page(route: string): ReactNode {
   if (route.startsWith('/budget')) return <BudgetModule route={route} />;
   if (route.startsWith('/reading')) return <ReadingModule route={route} />;
   if (route.startsWith('/code')) return <CodeModule route={route} />;
+  if (route.startsWith('/fort')) return <FortModule route={route} />;
   if (route === '/settings') return <Settings />;
   if (route === '/achievements') return <Achievements />;
   if (route === '/report') return <Report />;

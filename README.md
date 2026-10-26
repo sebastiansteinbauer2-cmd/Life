@@ -11,6 +11,7 @@ Osobní gamifikovaný systém seberozvoje ve stylu RPG. Učení, trénink, šach
 - **💸 Rozpočet** – zápis výdajů a příjmů po kategoriích, měsíční limity, kolik zbývá na investice (a o kolik dřív by byl splněný velký cíl z Financí), graf 6 měsíců, bonus za měsíc v rozpočtu.
 - **💻 Programování** – 43 úloh v Pythonu (lehké, střední, těžké), které běží přímo v telefonu (Pyodide), s testy, nápovědou a vzorovým řešením; úloha dne a kvíz „Co program vypíše?“ z jazyka C jako příprava na PA1.
 - **📚 Čtení** – knihovna (čtu / chci číst / přečteno), zápis stránky, roční cíl, citáty a citát dne, graf stránek.
+- **🏰 Pevnost hrdiny** – herní vrstva jako Clash of Clans: suroviny za XP ze skutečného života (🪵 Síla + Vytrvalost, 🪨 Inteligence + Šachy, 💎 Disciplína), 7 budov s levely a stavěním v reálném čase, armáda (silnější jednotky se odemknou statistikami ze života), 12 výprav s tahovými bitvami na mřížce a nájezdy na pevnost za každý den bez XP.
 - **🗺️ Mapa světa** – velké cíle (ČVUT, Ironman, Porsche, 50 000 Kč/měs., knihy, programování…) jako hrady na cestě; hrdina stojí u nejbližšího nedobytého.
 - **📜 Deník hrdiny** – týdenní souhrn (XP, aktivní dny, questy, statistiky, nové odznaky) proti stejným dnům minulého týdne.
 - **🏪 Obchod** – 1 zlaťák za každých 10 XP, za zlaťáky si „kupuješ“ vlastní odměny.
