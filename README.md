@@ -15,6 +15,7 @@ Osobní gamifikovaný systém seberozvoje ve stylu RPG. Učení, trénink, šach
 - **💰 Finance** – napojení na Trading 212 (API klíč jen pro čtení): hodnota účtu, zisk/ztráta, pozice, graf portfolia, vklady a dividendy. Měsíční quest „investuj svůj cíl“, série měsíců v řadě (bonus za 3 / 6 / 12), XP za vklady, dividendy a milníky portfolia, odznaky.
 
 - **☁️ Synchronizace zařízení** – telefon, tablet i počítač se stejnými daty přes tvůj vlastní projekt Supabase (zdarma).
+- **🔔 Připomínky** – notifikace i při zavřené aplikaci: večer, když ti hrozí přerušení série (jen když ten den ještě nemáš quest), a volitelně ráno.
 
 Data jsou uložená ve tvém zařízení (IndexedDB) a – když zapneš synchronizaci – i v tvém cloudu Supabase. V **Nastavení → Export** si můžeš kdykoli stáhnout zálohu (JSON).
 
@@ -55,6 +56,8 @@ Nastavení (jednou, cca 5 minut):
 6. Na dalším zařízení otevři odkaz z tlačítka **Poslat odkaz pro další zařízení** (nebo při prvním spuštění klepni na **Už appku používám na jiném zařízení**), přihlas se a dej **Stáhnout do tohoto zařízení**.
 
 Klíče k Trading 212 a Stravě se do cloudu neposílají.
+
+**Připomínky (notifikace):** potřebují synchronizaci a Vercel server. Tvůj Supabase každých 10 minut (pg_cron) zkontroluje, jestli je čas na připomínku, a přes pg_net zavolá funkci `api/push.js` na Vercelu, která notifikaci odešle (Web Push). Klíče VAPID si appka vytvoří sama a uloží je do tvého Supabase – na Vercelu není potřeba nic nastavovat. Jednorázově spusť v Supabase SQL ze souboru `supabase/push.sql` (nebo tlačítka v aplikaci: Nastavení → Připomínky → Návod) a pak v aplikaci připomínky zapni.
 
 **Trading 212 a CORS:** API klíč se ukládá jen v telefonu (localStorage) – není v exportované záloze. Aplikace nejdřív zkusí API volat přímo; pokud to prohlížeč zablokuje (CORS), použije proxy `api/t212.js`. Tu získáš nasazením projektu na Vercel (viz níže) a do modulu Finance → *Nastavení propojení* zadáš `https://<tvoje-app>.vercel.app/api/t212`. Aplikace samotná může dál běžet na GitHub Pages.
 

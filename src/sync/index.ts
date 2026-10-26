@@ -81,7 +81,8 @@ export function onSyncStatus(fn: (s: SyncStatus) => void): () => void {
   return () => listeners.delete(fn);
 }
 
-async function session() {
+/** Přihlášení do Supabase (klient a uživatel), nebo null. */
+export async function session() {
   const c = loadConfig();
   if (!c) return null;
   const client = await supabaseClient(c.url, c.key);
@@ -112,7 +113,7 @@ export async function refresh(): Promise<void> {
 
 // ---------- přihlášení ----------
 
-const czech = (msg: string) => {
+export const czech = (msg: string) => {
   if (/invalid login credentials/i.test(msg)) return 'Špatný e‑mail nebo heslo.';
   if (/email not confirmed/i.test(msg)) return 'E‑mail ještě není potvrzený – klikni na odkaz v e‑mailu od Supabase (nebo v Supabase vypni „Confirm email“).';
   if (/already registered/i.test(msg)) return 'Účet s tímto e‑mailem už existuje – přihlas se.';

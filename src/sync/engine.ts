@@ -1,5 +1,8 @@
 import type { DataStore, RemoteRow } from '../data/store';
-import type { CollectionName } from '../data/types';
+import { COLLECTION_NAMES, type CollectionName } from '../data/types';
+
+/** Řádky aplikace (v cloudu jsou i jiné – např. nastavení připomínek). */
+const isData = (k: { col: string; deleted: boolean }) => !k.deleted && COLLECTION_NAMES.includes(k.col as CollectionName);
 
 /** Cloud, se kterým se synchronizuje (Supabase, v testech paměť). */
 export interface SyncRemote {
@@ -43,7 +46,7 @@ export async function pullChanges(store: DataStore, remote: SyncRemote, since: s
 
 /** Kolik živých (nesmazaných) záznamů je v cloudu. */
 export async function remoteCount(remote: SyncRemote): Promise<number> {
-  return (await remote.keys()).filter((k) => !k.deleted).length;
+  return (await remote.keys()).filter(isData).length;
 }
 
 /**
@@ -58,7 +61,7 @@ export async function linkDevice(store: DataStore, remote: SyncRemote, mode: 'do
   }
   const local = await store.syncMarkAllDirty();
   const have = new Set(local.map((e) => e.id));
-  const extra = (await remote.keys()).filter((k) => !k.deleted && !have.has(`${k.col}/${k.id}`));
+  const extra = (await remote.keys()).filter((k) => isData(k) && !have.has(`${k.col}/${k.id}`));
   await store.syncMarkDeleted(extra);
   await pushChanges(store, remote);
   return (await pullChanges(store, remote, null)).cursor;

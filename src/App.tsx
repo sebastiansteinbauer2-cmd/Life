@@ -8,6 +8,8 @@ import type { ModuleId, Profile } from './data/types';
 import Home from './pages/Home';
 import Onboarding from './pages/Onboarding';
 import { SyncBadge } from './sync/SyncPanel';
+import { refreshPush } from './notify/push';
+import { serverBase } from './modules/discover/videos';
 
 const Settings = lazy(() => import('./pages/Settings'));
 const Achievements = lazy(() => import('./pages/Achievements'));
@@ -63,6 +65,11 @@ export default function App() {
     // požádej prohlížeč, aby data v IndexedDB nemazal
     navigator.storage?.persist?.().catch(() => undefined);
   }, []);
+
+  const pushRelay = profile ? serverBase(profile) : null;
+  useEffect(() => {
+    if (profile?.onboarded) refreshPush({ relay: pushRelay, name: profile.name });
+  }, [profile?.onboarded, profile?.name, pushRelay]);
 
   if (!ready || !profile) return <div className="app center muted" style={{ paddingTop: '40vh' }}>Načítám…</div>;
   if (!profile.onboarded) return <Onboarding onDone={() => store.col('meta').put({ id: 'onboardedAt', value: Date.now() })} />;

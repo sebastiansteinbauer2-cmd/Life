@@ -99,6 +99,14 @@ describe('synchronizace', () => {
     expect((await d.col('exercises').all()).map((e) => e.id)).toEqual(['e3']);
   });
 
+  it('cizí řádky v cloudu (připomínky) se nepočítají ani nemažou', async () => {
+    const remote = new MemoryRemote();
+    await remote.push([{ col: 'push' as never, id: 'https://x', data: {}, deleted: false, client_ts: 1 }]);
+    expect(await remoteCount(remote)).toBe(0);
+    await device(remote, 'upload');
+    expect((await remote.keys()).find((k) => k.id === 'https://x')?.deleted).toBe(false);
+  });
+
   it('mezipaměť videí se neposílá', async () => {
     const remote = new MemoryRemote();
     const a = await device(remote, 'upload');

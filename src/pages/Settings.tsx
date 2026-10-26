@@ -9,6 +9,7 @@ import { MODULES } from '../game/xp';
 import { dateKey } from '../lib/date';
 import { LEVEL_LABEL } from '../modules/math/topics';
 import SyncPanel from '../sync/SyncPanel';
+import PushPanel from '../notify/PushPanel';
 import { loadConfig, signOut } from '../sync';
 
 export default function Settings() {
@@ -122,6 +123,11 @@ export default function Settings() {
       <section className="panel" id="sync">
         <h2 style={{ marginTop: 0 }}>☁️ Synchronizace zařízení</h2>
         <SyncPanel />
+      </section>
+
+      <section className="panel" id="push">
+        <h2 style={{ marginTop: 0 }}>🔔 Připomínky</h2>
+        <PushPanel />
       </section>
 
       <section className="panel">
