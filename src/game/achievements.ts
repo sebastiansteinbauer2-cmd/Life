@@ -22,6 +22,14 @@ export interface AchievementCtx {
   financePositions: number;
   financeBestStreak: number;
   financeGoalsDone: number;
+  runs: number;
+  activities: number;
+  runKmTotal: number;
+  runLongestKm: number;
+  rideLongestKm: number;
+  swimLongestKm: number;
+  bricks: number;
+  ironmanReady: boolean;
 }
 
 export interface AchievementDef {
@@ -48,6 +56,18 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   { id: 'boss-70', title: 'Přijat!', description: 'V simulaci přijímaček získej aspoň 70 bodů', icon: '🎓', check: (c) => c.bossBest >= 70 },
   { id: 'boss-100', title: 'Bezchybný', description: 'V simulaci získej 100 bodů', icon: '🏆', check: (c) => c.bossBest >= 100 },
   { id: 'workout-1', title: 'První pot', description: 'Zapiš první trénink', icon: '💦', check: (c) => c.workouts >= 1 },
+  { id: 'im-strava', title: 'Na startu', description: 'Načti první aktivitu ze Stravy', icon: '🔗', check: (c) => c.activities >= 1 },
+  { id: 'im-swim-1900', title: 'Plavec 70.3', description: 'Uplav 1,9 km v kuse', icon: '🏊', check: (c) => c.swimLongestKm >= 1.9 },
+  { id: 'im-swim-3800', title: 'Plavec Ironman', description: 'Uplav 3,8 km v kuse', icon: '🌊', check: (c) => c.swimLongestKm >= 3.8 },
+  { id: 'im-ride-90', title: 'Cyklista 70.3', description: 'Ujeď 90 km v kuse', icon: '🚴', check: (c) => c.rideLongestKm >= 90 },
+  { id: 'im-ride-180', title: 'Cyklista Ironman', description: 'Ujeď 180 km v kuse', icon: '🚵', check: (c) => c.rideLongestKm >= 180 },
+  { id: 'im-brick', title: 'Cihla', description: 'Kolo a hned běh v jeden den (brick)', icon: '🧱', check: (c) => c.bricks >= 1 },
+  { id: 'im-ready', title: 'Železný muž', description: 'Zvládni v tréninku všechny tři ironmanské vzdálenosti', icon: '🔱', check: (c) => c.ironmanReady },
+  { id: 'run-100km', title: 'Sto kilometrů', description: 'Naběhej celkem 100 km', icon: '👟', check: (c) => c.runKmTotal >= 100 },
+  { id: 'run-1000km', title: 'Tisícovka', description: 'Naběhej celkem 1000 km', icon: '🗺️', check: (c) => c.runKmTotal >= 1000 },
+  { id: 'run-10k', title: 'Desítka', description: 'Uběhni 10 km v kuse', icon: '🔟', check: (c) => c.runLongestKm >= 10 },
+  { id: 'run-half', title: 'Půlmaratonec', description: 'Uběhni půlmaraton (21,1 km)', icon: '🥈', check: (c) => c.runLongestKm >= 21.0975 },
+  { id: 'run-marathon', title: 'Maratonec', description: 'Uběhni maraton (42,2 km)', icon: '🥇', check: (c) => c.runLongestKm >= 42.195 },
   { id: 'workout-50', title: 'Železný', description: 'Zapiš 50 tréninků', icon: '🦾', check: (c) => c.workouts >= 50 },
   { id: 'pr-10', title: 'Lamač rekordů', description: 'Překonej 10 osobních rekordů', icon: '📈', check: (c) => c.prs >= 10 },
   { id: 'rest-10', title: 'Moudrost odpočinku', description: '10 dní regenerace', icon: '🧘', check: (c) => c.restDays >= 10 },

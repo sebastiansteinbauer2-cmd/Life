@@ -64,6 +64,7 @@ export const STATS: { id: StatId; label: string; icon: string; color: string }[]
   { id: 'str', label: 'Síla', icon: '💪', color: 'var(--c-str)' },
   { id: 'dis', label: 'Disciplína', icon: '🛡️', color: 'var(--c-dis)' },
   { id: 'chess', label: 'Šachy', icon: '♞', color: 'var(--c-chess)' },
+  { id: 'end', label: 'Vytrvalost', icon: '🫀', color: 'var(--c-end)' },
 ];
 export const STAT_LABEL = Object.fromEntries(STATS.map((s) => [s.id, s.label])) as Record<StatId, string>;
 
@@ -72,10 +73,11 @@ export const MODULES: { id: ModuleId; label: string; icon: string; route: string
   { id: 'training', label: 'Trénink', icon: '🏋️', route: '/training' },
   { id: 'chess', label: 'Šachy', icon: '♞', route: '/chess' },
   { id: 'discover', label: 'Objevy', icon: '🔭', route: '/discover' },
+  { id: 'ironman', label: 'Ironman', icon: '🏊', route: '/ironman' },
   { id: 'finance', label: 'Finance', icon: '💰', route: '/finance' },
 ];
 export const MODULE_LABEL: Record<ModuleId, string> = {
-  core: 'Obecné', math: 'Matematika', training: 'Trénink', chess: 'Šachy', discover: 'Objevy', finance: 'Finance',
+  core: 'Obecné', math: 'Matematika', training: 'Trénink', chess: 'Šachy', discover: 'Objevy', finance: 'Finance', ironman: 'Ironman',
 };
 
 /** Bonusy za sérii dní v řadě. */

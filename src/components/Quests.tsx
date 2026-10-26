@@ -6,7 +6,7 @@ import type { QuestView } from '../game/quests';
 import { DIFFICULTY_LABEL, DIFFICULTY_XP, MODULES, MODULE_LABEL, STATS, STAT_LABEL } from '../game/xp';
 import { Modal } from './ui';
 
-const MODULE_ICON: Record<ModuleId, string> = { core: '⚔️', math: '∑', training: '🏋️', chess: '♞', discover: '🔭', finance: '💰' };
+const MODULE_ICON: Record<ModuleId, string> = { core: '⚔️', math: '∑', training: '🏋️', chess: '♞', discover: '🔭', finance: '💰', ironman: '🏊' };
 const REC_LABEL: Record<Recurrence, string> = { once: 'Jednorázový', daily: 'Denní', weekly: 'Týdenní', monthly: 'Měsíční' };
 
 export function QuestRow({ q }: { q: QuestView }) {

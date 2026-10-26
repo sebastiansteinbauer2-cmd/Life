@@ -71,6 +71,22 @@ export const BUILTIN_QUESTS: BuiltinQuest[] = [
     recurrence: 'weekly', target: 1, manual: false, custom: false, route: '/discover/quiz',
   },
   {
+    id: 'im-swim', title: 'Plavání 2× týdně', description: 'Načte se ze Stravy.', module: 'ironman', stat: 'end',
+    difficulty: 'hard', recurrence: 'weekly', target: 2, manual: false, custom: false, route: '/ironman',
+  },
+  {
+    id: 'im-bike', title: 'Kolo 2× týdně', description: 'Načte se ze Stravy.', module: 'ironman', stat: 'end',
+    difficulty: 'hard', recurrence: 'weekly', target: 2, manual: false, custom: false, route: '/ironman',
+  },
+  {
+    id: 'im-run', title: 'Běh 3× týdně', description: 'Načte se ze Stravy.', module: 'ironman', stat: 'end',
+    difficulty: 'hard', recurrence: 'weekly', target: 3, manual: false, custom: false, route: '/ironman',
+  },
+  {
+    id: 'im-brick', title: 'Brick: kolo + hned běh', description: 'Obojí v jeden den – zvykání nohou na běh po kole.', module: 'ironman', stat: 'end',
+    difficulty: 'epic', recurrence: 'weekly', target: 1, manual: false, custom: false, route: '/ironman',
+  },
+  {
     id: 'finance-monthly', title: 'Investuj svůj měsíční cíl', description: 'Splní se po synchronizaci s Trading 212, když vklady za měsíc dosáhnou cíle.',
     module: 'finance', stat: 'dis', difficulty: 'epic', recurrence: 'monthly', target: 1, manual: false, custom: false, route: '/finance',
   },

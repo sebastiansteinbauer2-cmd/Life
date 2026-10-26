@@ -17,6 +17,7 @@
   --c-str: #f87171;
   --c-dis: #a78bfa;
   --c-chess: #4ade80;
+  --c-end: #22d3ee;
   /* barvy modulů */
   --m-core: #f5c542;
   --m-math: #60a5fa;
@@ -24,6 +25,7 @@
   --m-chess: #4ade80;
   --m-discover: #c084fc;
   --m-finance: #fbbf24;
+  --m-ironman: #22d3ee;
   /* barvy obtížnosti */
   --d-easy: #4ade80;
   --d-medium: #60a5fa;
@@ -146,6 +148,7 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 }
 .btn-gold:active, button.primary:active { box-shadow: 0 1px 0 #8a6408; }
 .btn-ghost { background: transparent; box-shadow: none; }
+.strava-btn { background: linear-gradient(180deg, #ff7a33, #fc4c02); border-color: #c23a00; color: #fff; font-weight: 700; box-shadow: 0 4px 0 #8f2b00; }
 .btn-danger { border-color: #7f1d1d; color: var(--red); background: transparent; box-shadow: none; }
 .btn-sm { min-height: 34px; padding: 6px 10px; font-size: 0.85rem; }
 .btn-block { width: 100%; }
@@ -239,6 +242,7 @@ button.chip { min-height: 32px; padding: 4px 12px; font-size: 0.85rem; }
 .hero-name { font-weight: 600; font-size: 1.1rem; line-height: 1.2; }
 .title-badge { font-family: var(--font-pixel); color: var(--gold-2); font-size: 0.95rem; letter-spacing: 0.06em; text-transform: uppercase; }
 .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+.stats > :last-child:nth-child(odd) { grid-column: 1 / -1; }
 .stat {
   display: flex; gap: 8px; align-items: center;
   padding: 7px 8px; border-radius: 10px; background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(255, 255, 255, 0.04);
@@ -286,6 +290,7 @@ button.chip { min-height: 32px; padding: 4px 12px; font-size: 0.85rem; }
 .quest[data-m='chess'] { --mc: var(--m-chess); }
 .quest[data-m='discover'] { --mc: var(--m-discover); }
 .quest[data-m='finance'] { --mc: var(--m-finance); }
+.quest[data-m='ironman'] { --mc: var(--m-ironman); }
 .quest.done { opacity: 0.55; }
 .quest.done::before { background: var(--green); box-shadow: none; }
 .quest.done .qtitle { text-decoration: line-through; text-decoration-color: rgba(255, 255, 255, 0.4); }
@@ -346,6 +351,7 @@ button.chip { min-height: 32px; padding: 4px 12px; font-size: 0.85rem; }
 .tile[data-m='chess'] { --mc: var(--m-chess); }
 .tile[data-m='discover'] { --mc: var(--m-discover); }
 .tile[data-m='finance'] { --mc: var(--m-finance); }
+.tile[data-m='ironman'] { --mc: var(--m-ironman); }
 .tile .ic {
   width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem;
   background: color-mix(in srgb, var(--mc) 20%, transparent); border: 1px solid color-mix(in srgb, var(--mc) 45%, transparent);
@@ -371,10 +377,10 @@ button.chip { min-height: 32px; padding: 4px 12px; font-size: 0.85rem; }
 .nav a {
   position: relative;
   flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
-  color: var(--muted); text-decoration: none; font-size: 0.66rem; min-width: 0; border-radius: 12px; margin: 0 2px;
+  color: var(--muted); text-decoration: none; font-size: 0.6rem; min-width: 0; border-radius: 12px; margin: 0 1px;
   transition: background 0.2s, color 0.2s;
 }
-.nav a .ic { font-size: 1.3rem; line-height: 1; transition: transform 0.2s; }
+.nav a .ic { font-size: 1.2rem; line-height: 1; transition: transform 0.2s; }
 .nav a.active { color: var(--gold); background: rgba(245, 197, 66, 0.1); }
 .nav a.active::before {
   content: ''; position: absolute; top: -7px; left: 25%; right: 25%; height: 3px; border-radius: 0 0 3px 3px;
@@ -495,7 +501,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 @media (min-width: 560px) {
   .badge-grid { grid-template-columns: repeat(4, 1fr); }
   .video-grid { grid-template-columns: 1fr 1fr; }
-  .tiles { grid-template-columns: repeat(5, 1fr); }
+  .tiles { grid-template-columns: repeat(3, 1fr); }
   .tiles > :last-child:nth-child(odd) { grid-column: auto; }
   .modal { border-radius: 18px; margin-bottom: 5vh; }
   .modal-back { align-items: center; }

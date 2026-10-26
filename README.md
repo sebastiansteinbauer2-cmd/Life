@@ -7,6 +7,7 @@ Osobní gamifikovaný systém seberozvoje ve stylu RPG. Učení, trénink, šach
 - **🏋️ Trénink** – týdenní plán (horní / dolní / core / volno), automatická progrese podle cíle, osobní rekordy s bonusovým XP, level každého cviku, vlastní cviky, váha a grafy.
 - **♞ Šachy** – synchronizace s Chess.com (XP za nové partie, víc za rapid, bonus za výhru a rekordní rating), graf ratingu, statistika podle barvy a zahájení, poznámky a rozbory partií, týdenní plán a knihy jako dlouhodobé questy.
 - **🔭 Objevy** – Video dne a seznam nejnovějších videí z YouTube kanálů v knihovně (přehrávání přímo v aplikaci, po zhlédnutí zápis objevu), Objev dne, deník znalostí se štítky a vyhledáváním, knihovna zdrojů, náhodný článek z Wikipedie a týdenní opakovací kvíz.
+- **🏊 Ironman** – napojení na Stravu: plavání, kolo a běh se načítají samy, XP do nové statistiky Vytrvalost, týdenní questy (2× plavání, 2× kolo, 3× běh, brick), připravenost na Ironman / 70.3, hodiny po týdnech, osobní rekordy, odpočet do závodu a odznaky.
 - **💰 Finance** – napojení na Trading 212 (API klíč jen pro čtení): hodnota účtu, zisk/ztráta, pozice, graf portfolia, vklady a dividendy. Měsíční quest „investuj svůj cíl“, série měsíců v řadě (bonus za 3 / 6 / 12), XP za vklady, dividendy a milníky portfolia, odznaky.
 
 Data jsou uložená **jen ve tvém zařízení** (IndexedDB). V **Nastavení → Export** si pravidelně stahuj zálohu (JSON).
@@ -34,6 +35,8 @@ public/            ikony aplikace
 **Výměna úložiště za cloud (např. Supabase):** celá aplikace pracuje jen s abstraktní třídou `DataStore` (`src/data/store.ts`). Stačí napsat třeba `SupabaseStore`, který implementuje metodu `col(name)` (operace `all / get / put / bulkPut / delete / clear` nad tabulkou), a v `src/app/context.tsx` vyměnit `new DexieStore()` za novou třídu. Názvy kolekcí a typy záznamů jsou v `src/data/types.ts`.
 
 **Trading 212 a CORS:** API klíč se ukládá jen v telefonu (localStorage) – není v exportované záloze. Aplikace nejdřív zkusí API volat přímo; pokud to prohlížeč zablokuje (CORS), použije proxy `api/t212.js`. Tu získáš nasazením projektu na Vercel (viz níže) a do modulu Finance → *Nastavení propojení* zadáš `https://<tvoje-app>.vercel.app/api/t212`. Aplikace samotná může dál běžet na GitHub Pages.
+
+**Strava:** přihlášení řeší funkce `api/strava.js` na Vercelu. Jednorázově: na strava.com/settings/api vytvoř aplikaci (Authorization Callback Domain = adresa tvého Vercel projektu), pak ve Vercelu → Settings → Environment Variables přidej `STRAVA_CLIENT_ID` a `STRAVA_CLIENT_SECRET` a dej Redeploy. Návod je přímo v aplikaci v sekci Ironman.
 
 **YouTube videa:** seznam nejnovějších videí stahuje funkce `api/yt.js` na tvém Vercel serveru (z RSS kanálu, bez API klíče). Adresa serveru se bere z Nastavení → *Server (Vercel)*, případně z proxy u Financí. Kanál přidáš v Objevy → Knihovna odkazem ve tvaru `https://www.youtube.com/@kanal`.
 

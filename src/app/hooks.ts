@@ -31,6 +31,7 @@ export function useStreaks(): (Record<ModuleId | 'all', StreakInfo> & { week: { 
       chess: computeStreak(days('chess')),
       discover: computeStreak(days('discover')),
       finance: computeStreak(days('finance')),
+      ironman: computeStreak(days('ironman')),
     };
   });
 }

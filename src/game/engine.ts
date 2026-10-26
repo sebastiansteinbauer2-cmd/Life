@@ -3,6 +3,7 @@ import type { ModuleId, Profile, QuestProgress, StatId, XpEntry } from '../data/
 import { dateKey, uid } from '../lib/date';
 import { ACHIEVEMENTS, type AchievementCtx, type AchievementDef } from './achievements';
 import { findQuest, periodKey, progressId } from './quests';
+import { ironmanReady, isRide, isRun, isSwim } from '../modules/ironman/sports';
 import { computeStreak } from './streaks';
 import { DIFFICULTY_XP, MODULE_LABEL, STREAK_BONUSES, levelFromXp, titleForLevel } from './xp';
 
@@ -26,7 +27,7 @@ export function defaultProfile(): Profile {
     onboarded: false,
     createdAt: Date.now(),
     xp: 0,
-    statXp: { int: 0, str: 0, dis: 0, chess: 0 },
+    statXp: { int: 0, str: 0, dis: 0, chess: 0, end: 0 },
     bestStreak: 0,
     heightCm: 183,
     weightKg: 88,
@@ -47,6 +48,8 @@ export function defaultProfile(): Profile {
     financeReturn: 7,
     financeWithdrawal: 4,
     serverUrl: '',
+    ironmanDate: '',
+    ironmanWeeklyHours: 6,
   };
 }
 
@@ -192,12 +195,14 @@ export class GameEngine {
 
   async achievementCtx(): Promise<AchievementCtx> {
     const s = this.store;
-    const [profile, progress, attempts, boss, workouts, games, books, discoveries, meta, log, finTx, finDiv, finSnaps] = await Promise.all([
+    const [profile, progress, attempts, boss, workouts, games, books, discoveries, meta, log, finTx, finDiv, finSnaps, acts] = await Promise.all([
       this.getProfile(), s.col('questProgress').all(), s.col('mathAttempts').all(), s.col('bossResults').all(),
       s.col('workouts').all(), s.col('chessGames').all(), s.col('books').all(), s.col('discoveries').all(),
       s.col('meta').all(), s.col('xpLog').all(), s.col('financeTx').all(), s.col('financeDividends').all(),
-      s.col('financeSnapshots').all(),
+      s.col('financeSnapshots').all(), s.col('activities').all(),
     ]);
+    const runs = acts.filter((a) => isRun(a.sport));
+    const longest = (f: (s: string) => boolean) => Math.max(0, ...acts.filter((a) => f(a.sport)).map((a) => a.distance)) / 1000;
     const metaNum = (id: string) => Number(meta.find((m) => m.id === id)?.value ?? 0);
     const lastSnap = finSnaps.sort((a, b) => b.ts - a.ts)[0];
     const today = dateKey(this.now());
@@ -227,6 +232,14 @@ export class GameEngine {
       financePositions: lastSnap?.positions.length ?? 0,
       financeBestStreak: metaNum('financeBestStreak'),
       financeGoalsDone: meta.filter((m) => m.id.startsWith('goal:')).length,
+      runs: runs.length,
+      activities: acts.length,
+      runKmTotal: runs.reduce((n, a) => n + a.distance, 0) / 1000,
+      runLongestKm: longest(isRun),
+      rideLongestKm: longest(isRide),
+      swimLongestKm: longest(isSwim),
+      bricks: meta.filter((m) => m.id.startsWith('brick:')).length,
+      ironmanReady: ironmanReady(acts),
     };
   }
 

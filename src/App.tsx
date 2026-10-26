@@ -14,6 +14,7 @@ const TrainingModule = lazy(() => import('./modules/training/TrainingPages'));
 const ChessModule = lazy(() => import('./modules/chess/ChessPages'));
 const DiscoverModule = lazy(() => import('./modules/discover/DiscoverPages'));
 const FinanceModule = lazy(() => import('./modules/finance/FinancePages'));
+const IronmanModule = lazy(() => import('./modules/ironman/IronmanPages'));
 
 const NAV = [
   { path: '/', icon: '🏠', label: 'Domů' },
@@ -21,6 +22,7 @@ const NAV = [
   { path: '/training', icon: '🏋️', label: 'Trénink' },
   { path: '/chess', icon: '♞', label: 'Šachy' },
   { path: '/discover', icon: '🔭', label: 'Objevy' },
+  { path: '/ironman', icon: '🏊', label: 'Ironman' },
   { path: '/finance', icon: '💰', label: 'Finance' },
 ];
 
@@ -30,6 +32,7 @@ function page(route: string): ReactNode {
   if (route.startsWith('/chess')) return <ChessModule route={route} />;
   if (route.startsWith('/discover')) return <DiscoverModule route={route} />;
   if (route.startsWith('/finance')) return <FinanceModule route={route} />;
+  if (route.startsWith('/ironman')) return <IronmanModule route={route} />;
   if (route === '/settings') return <Settings />;
   if (route === '/achievements') return <Achievements />;
   return <Home />;

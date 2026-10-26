@@ -1,8 +1,8 @@
 // Datové typy celé aplikace. Všechny záznamy mají string `id`,
 // aby šly snadno ukládat do IndexedDB i do budoucí cloudové databáze (Supabase).
 
-export type StatId = 'int' | 'str' | 'dis' | 'chess';
-export type ModuleId = 'core' | 'math' | 'training' | 'chess' | 'discover' | 'finance';
+export type StatId = 'int' | 'str' | 'dis' | 'chess' | 'end';
+export type ModuleId = 'core' | 'math' | 'training' | 'chess' | 'discover' | 'finance' | 'ironman';
 export type Difficulty = 'easy' | 'medium' | 'hard' | 'epic';
 export type Recurrence = 'once' | 'daily' | 'weekly' | 'monthly';
 export type MathLevel = 'zaklad' | 'rozsireny' | 'fit';
@@ -32,7 +32,9 @@ export interface Profile {
   financeTargets: FinanceTarget[];
   financeReturn: number; // očekávaný roční výnos v % (pro odhad)
   financeWithdrawal: number; // bezpečná míra výběru v % ročně (pravidlo 4 %)
-  serverUrl: string; // vlastní Vercel server (proxy pro Trading 212 a YouTube)
+  serverUrl: string; // vlastní Vercel server (proxy pro Trading 212, YouTube a Stravu)
+  ironmanDate: string; // datum závodu (YYYY-MM-DD), nepovinné
+  ironmanWeeklyHours: number; // týdenní cíl tréninkových hodin
 }
 
 /** Velký cíl: částka (např. auto) nebo pasivní příjem měsíčně. */
@@ -241,6 +243,20 @@ export interface FinanceDividend {
   ts: number;
 }
 
+/** Sportovní aktivita ze Stravy. */
+export interface Activity {
+  id: string; // ID aktivity ve Stravě
+  ts: number; // začátek (ms)
+  date: string; // YYYY-MM-DD (lokální)
+  sport: string; // Run, Ride, Walk, Hike, …
+  name: string;
+  distance: number; // metry
+  movingTime: number; // sekundy
+  elevation: number; // metry
+  avgHr?: number;
+  xp?: number;
+}
+
 /** Mapa všech kolekcí – jediný zdroj pravdy pro úložiště, export i import. */
 export interface Collections {
   profile: Profile;
@@ -263,6 +279,7 @@ export interface Collections {
   financeSnapshots: FinanceSnapshot;
   financeTx: FinanceTx;
   financeDividends: FinanceDividend;
+  activities: Activity;
 }
 
 export type CollectionName = keyof Collections;
@@ -272,4 +289,5 @@ export const COLLECTION_NAMES: CollectionName[] = [
   'mathAttempts', 'topicSrs', 'bossResults', 'exercises', 'workouts', 'weights',
   'chessGames', 'chessRatings', 'books', 'discoveries', 'resources',
   'financeSnapshots', 'financeTx', 'financeDividends',
+  'activities',
 ];
