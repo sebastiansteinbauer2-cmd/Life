@@ -16,6 +16,11 @@ export interface AchievementCtx {
   discoveries: number;
   quizzes: number;
   modulesToday: number;
+  financeDeposits: number;
+  financeDividends: number;
+  financeMilestone: number;
+  financePositions: number;
+  financeBestStreak: number;
 }
 
 export interface AchievementDef {
@@ -53,4 +58,13 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   { id: 'discover-10', title: 'Zvídavý', description: 'Zapiš 10 objevů', icon: '💡', check: (c) => c.discoveries >= 10 },
   { id: 'discover-100', title: 'Encyklopedie', description: 'Zapiš 100 objevů', icon: '🧭', check: (c) => c.discoveries >= 100 },
   { id: 'quiz-1', title: 'Paměť jako slon', description: 'Dokonči opakovací kvíz', icon: '🐘', check: (c) => c.quizzes >= 1 },
+  { id: 'fin-first', title: 'Investor', description: 'Načti první vklad z Trading 212', icon: '💰', check: (c) => c.financeDeposits >= 1 },
+  { id: 'fin-m1', title: 'Semínko', description: 'Portfolio přes 10 000 Kč (500 €/$)', icon: '🌱', check: (c) => c.financeMilestone >= 1 },
+  { id: 'fin-m3', title: 'Stromek', description: 'Portfolio přes 100 000 Kč (5 000 €/$)', icon: '🌳', check: (c) => c.financeMilestone >= 3 },
+  { id: 'fin-m5', title: 'Les', description: 'Portfolio přes 500 000 Kč (25 000 €/$)', icon: '🌲', check: (c) => c.financeMilestone >= 5 },
+  { id: 'fin-m6', title: 'Milionář', description: 'Portfolio přes 1 000 000 Kč (50 000 €/$)', icon: '💎', check: (c) => c.financeMilestone >= 6 },
+  { id: 'fin-div', title: 'Pasivní příjem', description: 'Získej první dividendu', icon: '🪙', check: (c) => c.financeDividends >= 1 },
+  { id: 'fin-diverse', title: 'Diverzifikace', description: 'Měj v portfoliu 10 a víc pozic', icon: '🧺', check: (c) => c.financePositions >= 10 },
+  { id: 'fin-streak-6', title: 'Pravidelný investor', description: 'Splň měsíční cíl 6 měsíců v řadě', icon: '📅', check: (c) => c.financeBestStreak >= 6 },
+  { id: 'fin-streak-12', title: 'Rok disciplíny', description: 'Splň měsíční cíl 12 měsíců v řadě', icon: '🏦', check: (c) => c.financeBestStreak >= 12 },
 ];

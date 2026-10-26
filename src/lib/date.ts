@@ -21,6 +21,16 @@ export function daysBetween(a: string, b: string): number {
   return Math.round((parseDateKey(b).getTime() - parseDateKey(a).getTime()) / 86_400_000);
 }
 
+/** Měsíc, např. "2026-10". */
+export function monthKey(d: Date = new Date()): string {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
+}
+
+export function addMonths(key: string, months: number): string {
+  const [y, m] = key.split('-').map(Number);
+  return monthKey(new Date(y, m - 1 + months, 1));
+}
+
 /** ISO týden, např. "2026-W43". */
 export function weekKey(d: Date = new Date()): string {
   const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));

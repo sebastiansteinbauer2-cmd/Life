@@ -23,6 +23,7 @@ export function useStreaks(): Record<ModuleId | 'all', StreakInfo> | undefined {
       training: computeStreak(days('training')),
       chess: computeStreak(days('chess')),
       discover: computeStreak(days('discover')),
+      finance: computeStreak(days('finance')),
     };
   });
 }

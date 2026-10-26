@@ -2,12 +2,20 @@ import Dexie, { type Table } from 'dexie';
 import { COLLECTION_NAMES, type CollectionName, type Collections } from './types';
 import { DataStore, type Collection } from './store';
 
+// Kolekce první verze databáze – neměnit (Dexie podle nich staví upgrade).
+const V1_COLLECTIONS = [
+  'profile', 'xpLog', 'quests', 'questProgress', 'achievements', 'meta',
+  'mathAttempts', 'topicSrs', 'bossResults', 'exercises', 'workouts', 'weights',
+  'chessGames', 'chessRatings', 'books', 'discoveries', 'resources',
+] as const;
+
 class QuestyDb extends Dexie {
   constructor() {
     super('questy-zivota');
-    const schema: Record<string, string> = {};
-    for (const name of COLLECTION_NAMES) schema[name] = 'id';
-    this.version(1).stores(schema);
+    const schema = (names: readonly string[]) => Object.fromEntries(names.map((n) => [n, 'id']));
+    this.version(1).stores(schema(V1_COLLECTIONS));
+    // v2: modul Finance (Trading 212)
+    this.version(2).stores(schema(COLLECTION_NAMES));
   }
 }
 

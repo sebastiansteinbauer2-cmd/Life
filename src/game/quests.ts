@@ -1,5 +1,5 @@
 import type { CustomQuest, Difficulty, ModuleId, QuestProgress, Recurrence, StatId } from '../data/types';
-import { dateKey, weekKey } from '../lib/date';
+import { dateKey, monthKey, weekKey } from '../lib/date';
 import { planForDate } from '../modules/training/plan';
 
 export interface Quest {
@@ -70,6 +70,10 @@ export const BUILTIN_QUESTS: BuiltinQuest[] = [
     id: 'discover-quiz', title: 'Týdenní opakovací kvíz', module: 'discover', stat: 'int', difficulty: 'medium',
     recurrence: 'weekly', target: 1, manual: false, custom: false, route: '/discover/quiz',
   },
+  {
+    id: 'finance-monthly', title: 'Investuj svůj měsíční cíl', description: 'Splní se po synchronizaci s Trading 212, když vklady za měsíc dosáhnou cíle.',
+    module: 'finance', stat: 'dis', difficulty: 'epic', recurrence: 'monthly', target: 1, manual: false, custom: false, route: '/finance',
+  },
 ];
 
 export function customToQuest(q: CustomQuest): Quest {
@@ -79,6 +83,7 @@ export function customToQuest(q: CustomQuest): Quest {
 export function periodKey(rec: Recurrence, d: Date = new Date()): string {
   if (rec === 'daily') return dateKey(d);
   if (rec === 'weekly') return weekKey(d);
+  if (rec === 'monthly') return monthKey(d);
   return 'once';
 }
 

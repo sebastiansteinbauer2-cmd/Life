@@ -54,6 +54,7 @@ export default function Home() {
   const recent = useQuery(async () => (await store.col('achievements').all()).sort((a, b) => b.unlockedAt - a.unlockedAt).slice(0, 3));
   const today = quests?.filter((q) => q.recurrence === 'daily') ?? [];
   const weekly = quests?.filter((q) => q.recurrence === 'weekly') ?? [];
+  const monthly = quests?.filter((q) => q.recurrence === 'monthly') ?? [];
   const once = quests?.filter((q) => q.recurrence === 'once' && !q.done) ?? [];
   const doneToday = today.filter((q) => q.done).length;
   const plan = planForDate();
@@ -70,7 +71,7 @@ export default function Home() {
               {streaks?.all.current ? (streaks.all.activeToday ? 'dní v řadě – dnes splněno' : 'dní v řadě – dnes ještě něco udělej!') : 'Začni sérii ještě dnes'}
             </div>
           </div>
-          <div className="row" style={{ gap: 12 }}>
+          <div className="row" style={{ gap: 10 }}>
             {MODULES.map((m) => (
               <div key={m.id} className="center small" title={`Série: ${m.label}`}>
                 <div>{m.icon}</div>
@@ -98,6 +99,12 @@ export default function Home() {
         )}
         <h2>Týdenní questy</h2>
         <QuestList quests={weekly} />
+        {monthly.length > 0 && (
+          <>
+            <h2>Měsíční questy</h2>
+            <QuestList quests={monthly} />
+          </>
+        )}
       </section>
 
       <h2>Moduly</h2>

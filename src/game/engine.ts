@@ -37,6 +37,8 @@ export function defaultProfile(): Profile {
     fideRating: 1980,
     mathLevel: 'rozsireny',
     examDate: '',
+    financeGoal: 2000,
+    financeProxyUrl: '',
   };
 }
 
@@ -182,13 +184,16 @@ export class GameEngine {
 
   async achievementCtx(): Promise<AchievementCtx> {
     const s = this.store;
-    const [profile, progress, attempts, boss, workouts, games, books, discoveries, meta, log] = await Promise.all([
+    const [profile, progress, attempts, boss, workouts, games, books, discoveries, meta, log, finTx, finDiv, finSnaps] = await Promise.all([
       this.getProfile(), s.col('questProgress').all(), s.col('mathAttempts').all(), s.col('bossResults').all(),
       s.col('workouts').all(), s.col('chessGames').all(), s.col('books').all(), s.col('discoveries').all(),
-      s.col('meta').all(), s.col('xpLog').all(),
+      s.col('meta').all(), s.col('xpLog').all(), s.col('financeTx').all(), s.col('financeDividends').all(),
+      s.col('financeSnapshots').all(),
     ]);
+    const metaNum = (id: string) => Number(meta.find((m) => m.id === id)?.value ?? 0);
+    const lastSnap = finSnaps.sort((a, b) => b.ts - a.ts)[0];
     const today = dateKey(this.now());
-    const modulesToday = new Set(log.filter((e) => e.date === today && e.amount > 0 && e.module !== 'core').map((e) => e.module)).size;
+    const modulesToday = new Set(log.filter((e) => e.date === today && e.amount > 0 && e.module !== 'core' && e.module !== 'finance').map((e) => e.module)).size;
     const done = progress.filter((p) => p.completedAt);
     return {
       level: levelFromXp(profile.xp).level,
@@ -206,8 +211,13 @@ export class GameEngine {
       booksDone: books.filter((b) => b.done >= b.chapters).length,
       chaptersDone: books.reduce((n, b) => n + b.done, 0),
       discoveries: discoveries.length,
-      quizzes: Number(meta.find((m) => m.id === 'quizCount')?.value ?? 0),
+      quizzes: metaNum('quizCount'),
       modulesToday,
+      financeDeposits: finTx.filter((t) => t.type === 'DEPOSIT').length,
+      financeDividends: finDiv.length,
+      financeMilestone: metaNum('financeMilestone'),
+      financePositions: lastSnap?.positions.length ?? 0,
+      financeBestStreak: metaNum('financeBestStreak'),
     };
   }
 

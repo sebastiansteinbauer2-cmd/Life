@@ -2,9 +2,9 @@
 // aby šly snadno ukládat do IndexedDB i do budoucí cloudové databáze (Supabase).
 
 export type StatId = 'int' | 'str' | 'dis' | 'chess';
-export type ModuleId = 'core' | 'math' | 'training' | 'chess' | 'discover';
+export type ModuleId = 'core' | 'math' | 'training' | 'chess' | 'discover' | 'finance';
 export type Difficulty = 'easy' | 'medium' | 'hard' | 'epic';
-export type Recurrence = 'once' | 'daily' | 'weekly';
+export type Recurrence = 'once' | 'daily' | 'weekly' | 'monthly';
 export type MathLevel = 'zaklad' | 'rozsireny' | 'fit';
 export type TrainingGoal = 'sila' | 'vytrvalost' | 'svaly' | 'spalovani';
 export type Equipment = 'hrazda' | 'cinky' | 'gumy';
@@ -27,6 +27,8 @@ export interface Profile {
   fideRating: number;
   mathLevel: MathLevel;
   examDate: string;
+  financeGoal: number; // měsíční cíl investování (v měně účtu)
+  financeProxyUrl: string;
 }
 
 export interface XpEntry {
@@ -188,6 +190,42 @@ export interface Resource {
   builtIn: boolean;
 }
 
+export interface FinancePosition {
+  ticker: string;
+  quantity: number;
+  averagePrice: number;
+  currentPrice: number;
+  ppl: number; // zisk/ztráta v měně účtu
+}
+
+/** Denní snímek účtu Trading 212 (jeden záznam na den). */
+export interface FinanceSnapshot {
+  id: string; // YYYY-MM-DD
+  ts: number;
+  currency: string;
+  total: number;
+  invested: number;
+  ppl: number;
+  free: number;
+  positions: FinancePosition[];
+}
+
+export type FinanceTxType = 'DEPOSIT' | 'WITHDRAW' | 'FEE' | 'TRANSFER';
+
+export interface FinanceTx {
+  id: string; // reference z Trading 212
+  type: FinanceTxType;
+  amount: number;
+  ts: number;
+}
+
+export interface FinanceDividend {
+  id: string;
+  ticker: string;
+  amount: number;
+  ts: number;
+}
+
 /** Mapa všech kolekcí – jediný zdroj pravdy pro úložiště, export i import. */
 export interface Collections {
   profile: Profile;
@@ -207,6 +245,9 @@ export interface Collections {
   books: Book;
   discoveries: Discovery;
   resources: Resource;
+  financeSnapshots: FinanceSnapshot;
+  financeTx: FinanceTx;
+  financeDividends: FinanceDividend;
 }
 
 export type CollectionName = keyof Collections;
@@ -215,4 +256,5 @@ export const COLLECTION_NAMES: CollectionName[] = [
   'profile', 'xpLog', 'quests', 'questProgress', 'achievements', 'meta',
   'mathAttempts', 'topicSrs', 'bossResults', 'exercises', 'workouts', 'weights',
   'chessGames', 'chessRatings', 'books', 'discoveries', 'resources',
+  'financeSnapshots', 'financeTx', 'financeDividends',
 ];

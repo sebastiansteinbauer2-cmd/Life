@@ -65,9 +65,10 @@ export const MODULES: { id: ModuleId; label: string; icon: string; route: string
   { id: 'training', label: 'Trénink', icon: '🏋️', route: '/training' },
   { id: 'chess', label: 'Šachy', icon: '♞', route: '/chess' },
   { id: 'discover', label: 'Objevy', icon: '🔭', route: '/discover' },
+  { id: 'finance', label: 'Finance', icon: '💰', route: '/finance' },
 ];
 export const MODULE_LABEL: Record<ModuleId, string> = {
-  core: 'Obecné', math: 'Matematika', training: 'Trénink', chess: 'Šachy', discover: 'Objevy',
+  core: 'Obecné', math: 'Matematika', training: 'Trénink', chess: 'Šachy', discover: 'Objevy', finance: 'Finance',
 };
 
 /** Bonusy za sérii dní v řadě. */

@@ -6,8 +6,8 @@ import type { QuestView } from '../game/quests';
 import { DIFFICULTY_LABEL, DIFFICULTY_XP, MODULES, MODULE_LABEL, STATS, STAT_LABEL } from '../game/xp';
 import { Modal } from './ui';
 
-const MODULE_ICON: Record<ModuleId, string> = { core: '⚔️', math: '∑', training: '🏋️', chess: '♞', discover: '🔭' };
-const REC_LABEL: Record<Recurrence, string> = { once: 'Jednorázový', daily: 'Denní', weekly: 'Týdenní' };
+const MODULE_ICON: Record<ModuleId, string> = { core: '⚔️', math: '∑', training: '🏋️', chess: '♞', discover: '🔭', finance: '💰' };
+const REC_LABEL: Record<Recurrence, string> = { once: 'Jednorázový', daily: 'Denní', weekly: 'Týdenní', monthly: 'Měsíční' };
 
 export function QuestRow({ q }: { q: QuestView }) {
   const [busy, setBusy] = useState(false);
@@ -93,7 +93,7 @@ export function AddQuestModal({ open, onClose, module = 'core' }: { open: boolea
         <div className="field">
           <label>Typ</label>
           <select value={recurrence} onChange={(e) => setRecurrence(e.target.value as Recurrence)}>
-            {(['daily', 'weekly', 'once'] as Recurrence[]).map((r) => <option key={r} value={r}>{REC_LABEL[r]}</option>)}
+            {(['daily', 'weekly', 'monthly', 'once'] as Recurrence[]).map((r) => <option key={r} value={r}>{REC_LABEL[r]}</option>)}
           </select>
         </div>
         <div className="field">
