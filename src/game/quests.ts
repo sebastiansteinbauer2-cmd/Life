@@ -88,6 +88,22 @@ export const BUILTIN_QUESTS: BuiltinQuest[] = [
     difficulty: 'epic', recurrence: 'weekly', target: 1, manual: false, custom: false, route: '/ironman',
   },
   {
+    id: 'bud-log', icon: '💸', title: 'Zapiš dnešní výdaje', description: 'Stačí jeden zápis – nebo klepni „Dnes jsem nic neutratil“.',
+    module: 'budget', stat: 'dis', difficulty: 'easy', recurrence: 'daily', target: 1, manual: false, custom: false, route: '/budget/add',
+  },
+  {
+    id: 'code-daily', icon: '💻', title: 'Vyřeš programovací úlohu', description: 'Python úloha, nebo 3 správné odpovědi v kvízu C.',
+    module: 'code', stat: 'int', difficulty: 'medium', recurrence: 'daily', target: 1, manual: false, custom: false, route: '/code',
+  },
+  {
+    id: 'code-weekly', icon: '🧑‍💻', title: '5 programovacích úloh', description: 'Nové vyřešené úlohy v Pythonu za týden.',
+    module: 'code', stat: 'int', difficulty: 'hard', recurrence: 'weekly', target: 5, manual: false, custom: false, route: '/code/tasks',
+  },
+  {
+    id: 'read-daily', icon: '📖', title: 'Přečti 20 stránek', description: 'Zapiš, kam ses v knize dostal.',
+    module: 'reading', stat: 'int', difficulty: 'easy', recurrence: 'daily', target: 20, manual: false, custom: false, route: '/reading',
+  },
+  {
     id: 'finance-monthly', title: 'Investuj svůj měsíční cíl', description: 'Splní se po synchronizaci s Trading 212, když vklady za měsíc dosáhnou cíle.',
     module: 'finance', stat: 'dis', difficulty: 'epic', recurrence: 'monthly', target: 1, manual: false, custom: false, route: '/finance',
   },

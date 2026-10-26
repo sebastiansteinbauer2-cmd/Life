@@ -182,6 +182,15 @@ export default function Home() {
         </a>
       )}
 
+      <a href="#/map" className="panel row" style={{ textDecoration: 'none', color: 'var(--text)', marginTop: 12 }}>
+        <span style={{ fontSize: '1.6rem' }}>🗺️</span>
+        <div className="grow">
+          <b>Mapa světa</b>
+          <div className="small muted">Tvoje cesta k velkým cílům – ČVUT, Ironman, Porsche…</div>
+        </div>
+        <span className="small muted">›</span>
+      </a>
+
       {recent && recent.length > 0 && (
         <>
           <h2>Poslední odznaky</h2>

@@ -37,10 +37,17 @@ export default defineConfig({
         navigateFallback: 'index.html',
         // notifikace (public/push-sw.js)
         importScripts: ['push-sw.js'],
+        // Python pro modul Programování – po prvním stažení funguje i offline
+        runtimeCaching: [{
+          urlPattern: ({ url }) => url.href.startsWith('https://cdn.jsdelivr.net/npm/pyodide@'),
+          handler: 'CacheFirst',
+          options: { cacheName: 'pyodide', expiration: { maxEntries: 40 }, cacheableResponse: { statuses: [0, 200] } },
+        }],
       },
     }),
   ],
   build: { chunkSizeWarningLimit: 800 },
+  worker: { format: 'es' },
   test: {
     environment: 'node',
   },

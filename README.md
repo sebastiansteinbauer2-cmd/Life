@@ -8,6 +8,10 @@ Osobní gamifikovaný systém seberozvoje ve stylu RPG. Učení, trénink, šach
 - **♞ Šachy** – synchronizace s Chess.com (XP za nové partie, víc za rapid, bonus za výhru a rekordní rating), graf ratingu, statistika podle barvy a zahájení, poznámky a rozbory partií, týdenní plán a knihy jako dlouhodobé questy.
 - **🔭 Objevy** – Video dne a seznam nejnovějších videí z YouTube kanálů v knihovně (přehrávání přímo v aplikaci, po zhlédnutí zápis objevu), Objev dne, deník znalostí se štítky a vyhledáváním, knihovna zdrojů, náhodný článek z Wikipedie a týdenní opakovací kvíz.
 - **🏊 Ironman** – tréninkový plán k datu závodu (základ → budování → vrchol → ladění, lehčí každý 4. týden) s plánem × skutečností, ruční zápis tréninků, import exportu ze Stravy, napojení na Stravu: plavání, kolo a běh se načítají samy, XP do nové statistiky Vytrvalost, týdenní questy (2× plavání, 2× kolo, 3× běh, brick), připravenost na Ironman / 70.3, hodiny po týdnech, osobní rekordy, odpočet do závodu a odznaky.
+- **💸 Rozpočet** – zápis výdajů a příjmů po kategoriích, měsíční limity, kolik zbývá na investice (a o kolik dřív by byl splněný velký cíl z Financí), graf 6 měsíců, bonus za měsíc v rozpočtu.
+- **💻 Programování** – 43 úloh v Pythonu (lehké, střední, těžké), které běží přímo v telefonu (Pyodide), s testy, nápovědou a vzorovým řešením; úloha dne a kvíz „Co program vypíše?“ z jazyka C jako příprava na PA1.
+- **📚 Čtení** – knihovna (čtu / chci číst / přečteno), zápis stránky, roční cíl, citáty a citát dne, graf stránek.
+- **🗺️ Mapa světa** – velké cíle (ČVUT, Ironman, Porsche, 50 000 Kč/měs., knihy, programování…) jako hrady na cestě; hrdina stojí u nejbližšího nedobytého.
 - **📜 Deník hrdiny** – týdenní souhrn (XP, aktivní dny, questy, statistiky, nové odznaky) proti stejným dnům minulého týdne.
 - **🏪 Obchod** – 1 zlaťák za každých 10 XP, za zlaťáky si „kupuješ“ vlastní odměny.
 - **Navigace** – dole Domů + 4 vybrané sekce (Nastavení → Spodní lišta), zbytek pod „⋯ Více“.
@@ -141,6 +145,10 @@ Na iPhonu: otevři adresu v Safari → **Sdílet** → **Přidat na plochu**.
 | Kapitola knihy / dočtená kniha | +30 / +150 | Šachy |
 | Další objev v jednom dni | +5 | Inteligence |
 | Plavání / kolo / běh (podle vzdálenosti a času) | 5–150 | Vytrvalost |
+| Programovací úloha lehká / střední / těžká (poprvé) | 15 / 25 / 40 | Inteligence |
+| Nová správná odpověď v kvízu C | 5 | Inteligence |
+| Přečtené stránky / dočtená kniha | 1 za 5 stran / 100–200 | Inteligence |
+| Měsíc v rozpočtu | 100 | Disciplína |
 | Série 7 / 30 / 100 dní (celková; modulová poloviční) | 50 / 200 / 500 | Disciplína |
 | Vklad na Trading 212 (podle měsíčního cíle) | 10–100 | Disciplína |
 | Dividenda / nový milník portfolia | +5 / +100 | Disciplína |

@@ -52,6 +52,9 @@ export function defaultProfile(): Profile {
     ironmanWeeklyHours: 6,
     ironmanRace: 'full',
     navPinned: ['math', 'ironman', 'discover', 'finance'],
+    budgetIncome: 0,
+    budgetLimits: {},
+    readingGoal: 12,
     shopRewards: [
       { id: 'serial', title: 'Večer seriálu', icon: '🎬', price: 50 },
       { id: 'hry', title: 'Hodina hraní', icon: '🎮', price: 40 },
@@ -229,6 +232,10 @@ export class GameEngine {
       s.col('meta').all(), s.col('xpLog').all(), s.col('financeTx').all(), s.col('financeDividends').all(),
       s.col('financeSnapshots').all(), s.col('activities').all(),
     ]);
+    const [expenses, codeAttempts, readBooks, readLog] = await Promise.all([
+      s.col('expenses').all(), s.col('codeAttempts').all(), s.col('readBooks').all(), s.col('readLog').all(),
+    ]);
+    const solved = new Set(codeAttempts.filter((a) => a.passed && a.taskId.startsWith('py:')).map((a) => a.taskId));
     const runs = acts.filter((a) => isRun(a.sport));
     const longest = (f: (s: string) => boolean) => Math.max(0, ...acts.filter((a) => f(a.sport)).map((a) => a.distance)) / 1000;
     const metaNum = (id: string) => Number(meta.find((m) => m.id === id)?.value ?? 0);
@@ -268,6 +275,13 @@ export class GameEngine {
       swimLongestKm: longest(isSwim),
       bricks: meta.filter((m) => m.id.startsWith('brick:')).length,
       ironmanReady: ironmanReady(acts),
+      expenseDays: new Set([...expenses.map((e) => e.date), ...meta.filter((m) => m.id.startsWith('budgetNone:')).map((m) => m.id)]).size,
+      budgetMonths: meta.filter((m) => m.id.startsWith('budgetMonth:') && m.value === true).length,
+      codeSolved: solved.size,
+      codeHard: [...solved].filter((id) => id.startsWith('py:h-')).length,
+      cQuizCorrect: codeAttempts.filter((a) => a.passed && a.taskId.startsWith('c:')).length,
+      booksRead: readBooks.filter((b) => b.status === 'done').length,
+      pagesRead: readLog.reduce((n, e) => n + e.pages, 0),
     };
   }
 

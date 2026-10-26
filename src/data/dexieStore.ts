@@ -14,6 +14,9 @@ const V2_COLLECTIONS = [...V1_COLLECTIONS, 'financeSnapshots', 'financeTx', 'fin
 // v3 = v2 + aktivity ze Stravy. Také neměnit.
 const V3_COLLECTIONS = [...V2_COLLECTIONS, 'activities'] as const;
 
+// v4 = v3 + deník změn pro synchronizaci. Také neměnit.
+const V4_COLLECTIONS = V3_COLLECTIONS;
+
 class QuestyDb extends Dexie {
   constructor() {
     super('questy-zivota');
@@ -24,7 +27,9 @@ class QuestyDb extends Dexie {
     // v3: aktivity ze Stravy
     this.version(3).stores(schema(V3_COLLECTIONS));
     // v4: deník změn pro synchronizaci s cloudem
-    this.version(4).stores({ ...schema(COLLECTION_NAMES), _sync: 'id, dirty' });
+    this.version(4).stores({ ...schema(V4_COLLECTIONS), _sync: 'id, dirty' });
+    // v5: rozpočet, programování, čtení
+    this.version(5).stores({ ...schema(COLLECTION_NAMES), _sync: 'id, dirty' });
   }
 }
 

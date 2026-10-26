@@ -2,6 +2,9 @@ import type { ModuleId } from '../data/types';
 import { questsForDate, withProgress, type QuestView } from '../game/quests';
 import { computeStreak, type StreakInfo } from '../game/streaks';
 import { addDays, dateKey } from '../lib/date';
+import { MODULES } from '../game/xp';
+
+const MODULE_IDS: ModuleId[] = ['core', ...MODULES.map((m) => m.id)];
 import { game, store, useQuery } from './context';
 
 export function useQuests(module?: ModuleId): QuestView[] | undefined {
@@ -25,13 +28,7 @@ export function useStreaks(): (Record<ModuleId | 'all', StreakInfo> & { week: { 
         return { date, on: active.has(date) };
       }),
       all: computeStreak(days()),
-      core: computeStreak(days('core')),
-      math: computeStreak(days('math')),
-      training: computeStreak(days('training')),
-      chess: computeStreak(days('chess')),
-      discover: computeStreak(days('discover')),
-      finance: computeStreak(days('finance')),
-      ironman: computeStreak(days('ironman')),
+      ...(Object.fromEntries(MODULE_IDS.map((m) => [m, computeStreak(days(m))])) as Record<ModuleId, StreakInfo>),
     };
   });
 }

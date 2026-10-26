@@ -26,6 +26,9 @@
   --m-discover: #c084fc;
   --m-finance: #fbbf24;
   --m-ironman: #22d3ee;
+  --m-budget: #34d399;
+  --m-code: #f472b6;
+  --m-reading: #fb923c;
   /* barvy obtížnosti */
   --d-easy: #4ade80;
   --d-medium: #60a5fa;
@@ -291,6 +294,9 @@ button.chip { min-height: 32px; padding: 4px 12px; font-size: 0.85rem; }
 .quest[data-m='discover'] { --mc: var(--m-discover); }
 .quest[data-m='finance'] { --mc: var(--m-finance); }
 .quest[data-m='ironman'] { --mc: var(--m-ironman); }
+.quest[data-m='budget'] { --mc: var(--m-budget); }
+.quest[data-m='code'] { --mc: var(--m-code); }
+.quest[data-m='reading'] { --mc: var(--m-reading); }
 .quest.done { opacity: 0.55; }
 .quest.done::before { background: var(--green); box-shadow: none; }
 .quest.done .qtitle { text-decoration: line-through; text-decoration-color: rgba(255, 255, 255, 0.4); }
@@ -352,6 +358,9 @@ button.chip { min-height: 32px; padding: 4px 12px; font-size: 0.85rem; }
 .tile[data-m='discover'] { --mc: var(--m-discover); }
 .tile[data-m='finance'] { --mc: var(--m-finance); }
 .tile[data-m='ironman'] { --mc: var(--m-ironman); }
+.tile[data-m='budget'] { --mc: var(--m-budget); }
+.tile[data-m='code'] { --mc: var(--m-code); }
+.tile[data-m='reading'] { --mc: var(--m-reading); }
 .tile .ic {
   width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem;
   background: color-mix(in srgb, var(--mc) 20%, transparent); border: 1px solid color-mix(in srgb, var(--mc) 45%, transparent);
@@ -555,3 +564,62 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
   .levelup .rays, .xpbar > .fill::before { display: none; }
   .toast { animation: none; }
 }
+
+/* ---------- Programování ---------- */
+.code-editor {
+  width: 100%;
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  tab-size: 4;
+  white-space: pre;
+  overflow-x: auto;
+  background: #0d1117;
+  color: #e6edf3;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  resize: vertical;
+}
+.code-out {
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: 0.82rem;
+  background: #0d1117;
+  color: #e6edf3;
+  border-radius: 8px;
+  padding: 10px;
+  overflow-x: auto;
+  white-space: pre;
+  margin: 4px 0 0;
+}
+.code-keys .btn-sm { font-family: ui-monospace, monospace; min-width: 38px; }
+code { font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace; font-size: 0.88em; background: rgba(255, 255, 255, 0.06); padding: 1px 4px; border-radius: 4px; }
+
+/* ---------- Mapa světa ---------- */
+.world-map {
+  position: relative;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 20% 15%, rgba(74, 222, 128, 0.10), transparent 40%),
+    radial-gradient(circle at 80% 55%, rgba(96, 165, 250, 0.10), transparent 40%),
+    radial-gradient(circle at 30% 85%, rgba(245, 197, 66, 0.08), transparent 40%),
+    var(--panel);
+}
+.world-path { position: absolute; inset: 0; width: 100%; height: 100%; }
+.world-start { position: absolute; transform: translate(-50%, -50%); font-size: 0.85rem; color: var(--muted); white-space: nowrap; }
+.castle {
+  position: absolute; transform: translate(-50%, -50%);
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  background: none; border: none; padding: 0; width: 140px; color: var(--text); cursor: pointer;
+}
+.castle .ring { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45); }
+.castle .ic { width: 52px; height: 52px; border-radius: 50%; background: var(--bg); display: grid; place-items: center; font-size: 1.6rem; }
+.castle.won .ring { box-shadow: 0 0 18px rgba(245, 197, 66, 0.6); }
+.castle .flag { position: absolute; top: -10px; right: 34px; font-size: 1.1rem; }
+.castle .nm { font-size: 0.8rem; font-weight: 600; text-align: center; line-height: 1.2; text-shadow: 0 1px 3px #000; }
+.castle .pct { font-family: var(--font-pixel); font-size: 0.75rem; color: var(--gold); }
+.world-hero { position: absolute; transform: translate(-50%, -50%); filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.6)); animation: hero-bob 1.6s ease-in-out infinite; }
+@keyframes hero-bob { 50% { transform: translate(-50%, calc(-50% - 5px)); } }
+@media (prefers-reduced-motion: reduce) { .world-hero { animation: none; } }

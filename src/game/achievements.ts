@@ -30,6 +30,13 @@ export interface AchievementCtx {
   swimLongestKm: number;
   bricks: number;
   ironmanReady: boolean;
+  expenseDays: number;
+  budgetMonths: number;
+  codeSolved: number;
+  codeHard: number;
+  cQuizCorrect: number;
+  booksRead: number;
+  pagesRead: number;
 }
 
 export interface AchievementDef {
@@ -77,6 +84,18 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   { id: 'book-chapter', title: 'Čtenář', description: 'Dokonči kapitolu šachové knihy', icon: '📖', check: (c) => c.chaptersDone >= 1 },
   { id: 'book-done', title: 'Knihomol', description: 'Dočti celou šachovou knihu', icon: '📚', check: (c) => c.booksDone >= 1 },
   { id: 'discover-10', title: 'Zvídavý', description: 'Zapiš 10 objevů', icon: '💡', check: (c) => c.discoveries >= 10 },
+  { id: 'bud-first', title: 'Účetní', description: 'Zapiš první výdaj', icon: '🧾', check: (c) => c.expenseDays >= 1 },
+  { id: 'bud-30', title: 'Přehled o penězích', description: 'Zapisuj výdaje 30 různých dní', icon: '📒', check: (c) => c.expenseDays >= 30 },
+  { id: 'bud-month', title: 'Šetřílek', description: 'Vydrž celý měsíc v rozpočtu', icon: '🐷', check: (c) => c.budgetMonths >= 1 },
+  { id: 'bud-6months', title: 'Pán peněz', description: '6 měsíců v rozpočtu', icon: '🏦', check: (c) => c.budgetMonths >= 6 },
+  { id: 'code-first', title: 'Hello, world!', description: 'Vyřeš první programovací úlohu', icon: '👋', check: (c) => c.codeSolved >= 1 },
+  { id: 'code-10', title: 'Kodér', description: 'Vyřeš 10 programovacích úloh', icon: '⌨️', check: (c) => c.codeSolved >= 10 },
+  { id: 'code-all', title: 'Hacker', description: 'Vyřeš 40 programovacích úloh', icon: '🧑‍💻', check: (c) => c.codeSolved >= 40 },
+  { id: 'code-hard', title: 'Algoritmik', description: 'Vyřeš 5 těžkých úloh', icon: '🧠', check: (c) => c.codeHard >= 5 },
+  { id: 'c-quiz-50', title: 'Céčkař', description: '50 správných odpovědí v kvízu C', icon: '©️', check: (c) => c.cQuizCorrect >= 50 },
+  { id: 'read-first', title: 'První kniha', description: 'Dočti první knihu', icon: '📕', check: (c) => c.booksRead >= 1 },
+  { id: 'read-12', title: 'Knihovník', description: 'Dočti 12 knih', icon: '📚', check: (c) => c.booksRead >= 12 },
+  { id: 'read-5000', title: 'Pět tisíc stran', description: 'Přečti celkem 5000 stránek', icon: '📜', check: (c) => c.pagesRead >= 5000 },
   { id: 'discover-100', title: 'Encyklopedie', description: 'Zapiš 100 objevů', icon: '🧭', check: (c) => c.discoveries >= 100 },
   { id: 'quiz-1', title: 'Paměť jako slon', description: 'Dokonči opakovací kvíz', icon: '🐘', check: (c) => c.quizzes >= 1 },
   { id: 'fin-first', title: 'Investor', description: 'Načti první vklad z Trading 212', icon: '💰', check: (c) => c.financeDeposits >= 1 },

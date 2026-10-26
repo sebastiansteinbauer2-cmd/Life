@@ -1,12 +1,16 @@
 // Synchronizace mezi zařízeními přes Supabase.
 // Nastavení (adresa projektu a veřejný klíč) je jen v tomto zařízení (localStorage).
 import { game, store } from '../app/context';
+import { COLLECTION_NAMES } from '../data/types';
 import { linkDevice, remoteCount, syncOnce, type SyncRemote } from './engine';
 import { supabaseClient, supabaseRemote } from './supabase';
 
 const KEY = 'questy.sync';
 
-export type SyncConfig = { url: string; key: string; linked: boolean; lastPull: string | null; lastSync?: number };
+export type SyncConfig = { url: string; key: string; linked: boolean; lastPull: string | null; lastSync?: number; cols?: string };
+
+/** Druhy dat, které tahle verze aplikace zná – když přibudou, stáhne se všechno znovu. */
+const COLS = COLLECTION_NAMES.join(',');
 export type SyncStatus = {
   state: 'off' | 'login' | 'unlinked' | 'idle' | 'syncing' | 'error';
   email?: string;
@@ -180,7 +184,7 @@ export async function link(mode: 'download' | 'upload'): Promise<string | null> 
   try {
     const lastPull = await linkDevice(store, x.r, mode);
     await game.recomputeTotals();
-    saveConfig({ ...x.c, linked: true, lastPull, lastSync: Date.now() });
+    saveConfig({ ...x.c, linked: true, lastPull, lastSync: Date.now(), cols: COLS });
     await refresh();
     return null;
   } catch (e) {
@@ -208,10 +212,12 @@ export function syncNow(): Promise<void> {
       if (!navigator.onLine) return setStatus({ ...status, state: 'error', error: 'Jsi offline – synchronizuje se po připojení.' });
       setStatus({ ...status, state: 'syncing' });
       try {
-        const r = await syncOnce(store, x.r, x.c.lastPull);
+        // nová verze zná nové druhy dat – starší verze je mohla při stahování přeskočit
+        const since = x.c.cols === COLS ? x.c.lastPull : null;
+        const r = await syncOnce(store, x.r, since);
         if (r.applied && (await game.recomputeTotals())) again = true;
         const lastSync = Date.now();
-        saveConfig({ ...x.c, lastPull: r.cursor, lastSync });
+        saveConfig({ ...x.c, lastPull: r.cursor, lastSync, cols: COLS });
         setStatus({ state: 'idle', email: status.email, lastSync });
       } catch (e) {
         setStatus({ ...status, state: 'error', error: czech((e as Error).message) });

@@ -15,12 +15,16 @@ const Settings = lazy(() => import('./pages/Settings'));
 const Achievements = lazy(() => import('./pages/Achievements'));
 const Report = lazy(() => import('./pages/Report'));
 const Shop = lazy(() => import('./pages/Shop'));
+const WorldMap = lazy(() => import('./pages/WorldMap'));
 const MathModule = lazy(() => import('./modules/math/MathPages').then((m) => ({ default: m.MathRouter })));
 const TrainingModule = lazy(() => import('./modules/training/TrainingPages'));
 const ChessModule = lazy(() => import('./modules/chess/ChessPages'));
 const DiscoverModule = lazy(() => import('./modules/discover/DiscoverPages'));
 const FinanceModule = lazy(() => import('./modules/finance/FinancePages'));
 const IronmanModule = lazy(() => import('./modules/ironman/IronmanPages'));
+const BudgetModule = lazy(() => import('./modules/budget/BudgetPages'));
+const ReadingModule = lazy(() => import('./modules/reading/ReadingPages'));
+const CodeModule = lazy(() => import('./modules/code/CodePages'));
 
 /** Všechny sekce – do spodní lišty jdou 4 vybrané (Nastavení), zbytek je pod „Více“. */
 const SECTIONS: { id: ModuleId; path: string; icon: string; label: string }[] = [
@@ -30,8 +34,12 @@ const SECTIONS: { id: ModuleId; path: string; icon: string; label: string }[] = 
   { id: 'chess', path: '/chess', icon: '♞', label: 'Šachy' },
   { id: 'discover', path: '/discover', icon: '🔭', label: 'Objevy' },
   { id: 'finance', path: '/finance', icon: '💰', label: 'Finance' },
+  { id: 'budget', path: '/budget', icon: '💸', label: 'Rozpočet' },
+  { id: 'code', path: '/code', icon: '💻', label: 'Kód' },
+  { id: 'reading', path: '/reading', icon: '📚', label: 'Čtení' },
 ];
 const EXTRA = [
+  { path: '/map', icon: '🗺️', label: 'Mapa světa' },
   { path: '/report', icon: '📜', label: 'Deník hrdiny' },
   { path: '/shop', icon: '🏪', label: 'Obchod' },
   { path: '/achievements', icon: '🏅', label: 'Odznaky' },
@@ -45,10 +53,14 @@ function page(route: string): ReactNode {
   if (route.startsWith('/discover')) return <DiscoverModule route={route} />;
   if (route.startsWith('/finance')) return <FinanceModule route={route} />;
   if (route.startsWith('/ironman')) return <IronmanModule route={route} />;
+  if (route.startsWith('/budget')) return <BudgetModule route={route} />;
+  if (route.startsWith('/reading')) return <ReadingModule route={route} />;
+  if (route.startsWith('/code')) return <CodeModule route={route} />;
   if (route === '/settings') return <Settings />;
   if (route === '/achievements') return <Achievements />;
   if (route === '/report') return <Report />;
   if (route === '/shop') return <Shop />;
+  if (route === '/map') return <WorldMap />;
   return <Home />;
 }
 

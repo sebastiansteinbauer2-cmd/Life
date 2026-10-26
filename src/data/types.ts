@@ -2,7 +2,7 @@
 // aby šly snadno ukládat do IndexedDB i do budoucí cloudové databáze (Supabase).
 
 export type StatId = 'int' | 'str' | 'dis' | 'chess' | 'end';
-export type ModuleId = 'core' | 'math' | 'training' | 'chess' | 'discover' | 'finance' | 'ironman';
+export type ModuleId = 'core' | 'math' | 'training' | 'chess' | 'discover' | 'finance' | 'ironman' | 'budget' | 'code' | 'reading';
 export type Difficulty = 'easy' | 'medium' | 'hard' | 'epic';
 export type Recurrence = 'once' | 'daily' | 'weekly' | 'monthly';
 export type MathLevel = 'zaklad' | 'rozsireny' | 'fit';
@@ -38,6 +38,9 @@ export interface Profile {
   ironmanRace: 'full' | 'half'; // typ závodu pro tréninkový plán
   navPinned: ModuleId[]; // sekce ve spodní liště (zbytek je pod „Více“)
   shopRewards: ShopReward[];
+  budgetIncome: number; // čistý měsíční příjem (Kč), nepovinné
+  budgetLimits: Partial<Record<string, number>>; // měsíční limit podle kategorie výdajů (Kč)
+  readingGoal: number; // kolik knih za rok
 }
 
 /** Odměna v obchodě za zlaťáky. */
@@ -292,9 +295,58 @@ export interface Collections {
   financeTx: FinanceTx;
   financeDividends: FinanceDividend;
   activities: Activity;
+  expenses: Expense;
+  codeAttempts: CodeAttempt;
+  readBooks: ReadBook;
+  readLog: ReadLogEntry;
+}
+
+/** Výdaj nebo příjem v rozpočtu (Kč). */
+export interface Expense {
+  id: string;
+  ts: number;
+  date: string; // YYYY-MM-DD
+  amount: number; // vždy kladné
+  kind: 'out' | 'in';
+  category: string;
+  note: string;
+}
+
+/** Pokus o programovací úlohu (Python) nebo otázku z kvízu C. */
+export interface CodeAttempt {
+  id: string;
+  ts: number;
+  date: string;
+  taskId: string;
+  passed: boolean;
+  code?: string;
+}
+
+/** Kniha ke čtení (obecná – šachové knihy jsou v modulu Šachy). */
+export interface ReadBook {
+  id: string;
+  title: string;
+  author: string;
+  pages: number;
+  page: number; // kde právě jsem
+  status: 'reading' | 'done' | 'want';
+  startedAt?: string;
+  finishedAt?: string;
+  rating?: number; // 1–5
+  quotes: { text: string; page?: number }[];
+  createdAt: number;
+}
+
+/** Přečtené stránky za den. */
+export interface ReadLogEntry {
+  id: string; // `${date}|${bookId}`
+  date: string;
+  bookId: string;
+  pages: number;
 }
 
 export type CollectionName = keyof Collections;
+
 
 export const COLLECTION_NAMES: CollectionName[] = [
   'profile', 'xpLog', 'quests', 'questProgress', 'achievements', 'meta',
@@ -302,4 +354,5 @@ export const COLLECTION_NAMES: CollectionName[] = [
   'chessGames', 'chessRatings', 'books', 'discoveries', 'resources',
   'financeSnapshots', 'financeTx', 'financeDividends',
   'activities',
+  'expenses', 'codeAttempts', 'readBooks', 'readLog',
 ];
