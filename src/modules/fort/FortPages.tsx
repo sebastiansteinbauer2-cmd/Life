@@ -11,14 +11,15 @@ import {
   unitAt, type BUnit, type Battle, type BattleEvent,
 } from './battle';
 import {
-  BUILDINGS, CAMPS, ENEMIES, RES_FROM, RES_ICON, RES_LABEL, UNITS, armyCap, buildMinutes, buildingDef, campScale, type BuildingId,
+  CAMPS, ENEMIES, RES_FROM, RES_ICON, RES_LABEL, UNITS, armyCap, buildMinutes, buildingDef, campScale, type BuildingId,
   type Camp, type Res,
 } from './data';
 import {
   applyBattle, armySize, battleArmy, canOpenChest, canTrain, canUpgrade, collect, collectMult, collectorOf, defense, maxLevel, modifiers,
   openChest, speedUp, speedUpCost, startUpgrade, train, unlockedCamp, type LifeBuff, type Raid,
 } from './economy';
-import { BuildingSprite, PixelSprite, UNIT_SPRITES, UnitSprite } from './sprites';
+import { BuildingPicture, FortressScene, PLACES, SCENE } from './Fortress';
+import { PixelSprite, UNIT_SPRITES, UnitSprite } from './sprites';
 import { checkFort, createFort, useFort, useNow, type FortCtx } from './useFort';
 
 const TABS = [
@@ -86,7 +87,7 @@ function Intro() {
       <h1>🏰 Pevnost hrdiny</h1>
       <section className="panel gold stack">
         <div className="row" style={{ justifyContent: 'center', gap: 12, alignItems: 'flex-end' }}>
-          <BuildingSprite id="hall" level={7} size={72} />
+          <BuildingPicture id="hall" level={7} size={110} />
           <UnitSprite kind="warrior" size={40} />
           <UnitSprite kind="dragon" size={48} />
         </div>
@@ -135,9 +136,9 @@ function BuildingModal({ ctx, fort, id, onClose }: { ctx: FortCtx; fort: FortSta
     <Modal open onClose={onClose} title={`${def.name} – level ${lvl}`}>
       <div className="stack">
         <div className="row" style={{ justifyContent: 'center', gap: 16, alignItems: 'flex-end' }}>
-          <BuildingSprite id={id} level={lvl} size={80} />
+          <BuildingPicture id={id} level={lvl} size={110} />
           {!maxed && <span className="muted">→</span>}
-          {!maxed && <BuildingSprite id={id} level={lvl + 1} size={80} />}
+          {!maxed && <BuildingPicture id={id} level={lvl + 1} size={110} />}
         </div>
         <p className="small" style={{ margin: 0 }}>{def.text}</p>
         <div className="small">Teď: <b>{def.effect(lvl)}</b>{!maxed && <> → level {lvl + 1}: <b>{def.effect(lvl + 1)}</b></>}</div>
@@ -167,21 +168,10 @@ function BuildingModal({ ctx, fort, id, onClose }: { ctx: FortCtx; fort: FortSta
   );
 }
 
-/** Rozmístění budov ve vesnici (střed spodní hrany v % šířky a „výšky“ 0–115, šířka v %). */
-const LAYOUT: Record<BuildingId, { x: number; y: number; w: number }> = {
-  hall: { x: 50, y: 42, w: 30 },
-  barracks: { x: 19, y: 34, w: 24 },
-  forge: { x: 81, y: 34, w: 22 },
-  academy: { x: 18, y: 61, w: 22 },
-  tower: { x: 86, y: 63, w: 22 },
-  storage: { x: 50, y: 70, w: 24 },
-  sawmill: { x: 18, y: 92, w: 23 },
-  quarry: { x: 50, y: 100, w: 22 },
-  mine: { x: 82, y: 92, w: 22 },
-  walls: { x: 50, y: 12, w: 16 },
-};
-const CHEST_POS = { x: 33, y: 52 };
-const topPct = (y: number) => `${(y / 115) * 100}%`;
+const at = (x: number, y: number) => ({ left: `${(x / SCENE.w) * 100}%`, top: `${(y / SCENE.h) * 100}%` });
+const CHEST = { x: 246, y: 262 };
+/** Výška budovy nad základnou (kam dát bublinu a časovač). */
+const TOP: Partial<Record<BuildingId, number>> = { hall: 160, tower: 140, academy: 110, walls: 60 };
 
 type Fly = { id: number; res: keyof Res; x: number; y: number; i: number };
 
@@ -195,7 +185,7 @@ function Village({ ctx, fort, onOpen }: { ctx: FortCtx; fort: FortState; onOpen:
   const night = hour < 6 || hour >= 20;
   const today = dateKey();
   const chestReady = canOpenChest(fort, today, ctx.activeToday);
-  const soldiers = UNITS.flatMap((u) => Array.from({ length: fort.army[u.id] }, () => u.id)).slice(0, 8);
+  const soldiers = UNITS.flatMap((u) => Array.from({ length: fort.army[u.id] }, () => u.id)).slice(0, 6);
 
   const show = (text: string) => {
     const id = Date.now();
@@ -206,9 +196,9 @@ function Village({ ctx, fort, onOpen }: { ctx: FortCtx; fort: FortState; onOpen:
   const gather = async (r: keyof Res) => {
     const amount = ctx.pend[r];
     if (!amount) return;
-    const pos = LAYOUT[collectorOf(r)];
+    const pl = PLACES[collectorOf(r)];
     const base = Date.now();
-    setFly((f) => [...f, ...Array.from({ length: 6 }, (_, i) => ({ id: base + i, res: r, x: pos.x, y: pos.y - 20, i }))]);
+    setFly((f) => [...f, ...Array.from({ length: 6 }, (_, i) => ({ id: base + i, res: r, x: pl.x, y: pl.y - 70, i }))]);
     setTimeout(() => setFly((f) => f.filter((x) => x.id < base || x.id > base + 5)), 1200);
     // odkud suroviny jsou – podle modulů, kde se XP získalo
     const by = new Map<string, number>();
@@ -232,54 +222,35 @@ function Village({ ctx, fort, onOpen }: { ctx: FortCtx; fort: FortState; onOpen:
     setReward(o.reward);
   };
 
+  const up = fort.upgrade;
   return (
-    <div className={`village ${night ? 'night' : ''}`}>
-      <svg className="village-paths" viewBox="0 0 100 115" preserveAspectRatio="none" aria-hidden>
-        <path d="M50 42 L19 34 M50 42 L81 34 M50 42 L50 70 L18 61 M50 70 L86 63 M50 70 L18 92 M50 70 L50 100 M50 70 L82 92 M50 42 L50 12"
-          stroke="#8a6b3e" strokeWidth="5" strokeLinecap="round" fill="none" vectorEffect="non-scaling-stroke" opacity="0.65" />
-      </svg>
-      {night && <div className="stars" aria-hidden />}
-      <button className="v-walls" onClick={() => onOpen('walls')} aria-label={`Hradby level ${fort.buildings.walls}`}>
-        {Array.from({ length: 6 }, (_, i) => <BuildingSprite key={i} id="walls" level={fort.buildings.walls} size={60} />)}
-        <span className="v-name"><span className="v-lvl">{fort.buildings.walls}</span>Hradby{fort.upgrade?.id === 'walls' && ` 🔨 ${fmtTime(fort.upgrade.endsAt - now)}`}</span>
-      </button>
-      {BUILDINGS.filter((b) => b.id !== 'walls').map((b) => {
-        const pos = LAYOUT[b.id];
-        const up = fort.upgrade?.id === b.id ? fort.upgrade : null;
-        const can = !up && canUpgrade(fort, b.id, ctx.bal).ok;
-        const res = RES_KEYS.find((r) => collectorOf(r) === b.id);
+    <div className="fortress">
+      <FortressScene levels={fort.buildings} night={night} building={up?.id ?? null}
+        canUp={(id) => !up && canUpgrade(fort, id, ctx.bal).ok} onOpen={onOpen} />
+      {RES_KEYS.filter((r) => ctx.pend[r] > 0).map((r) => {
+        const id = collectorOf(r);
         return (
-          <div key={b.id} className="v-bld" style={{ left: `${pos.x}%`, top: topPct(pos.y), width: `${pos.w}%`, zIndex: Math.round(pos.y) }}>
-            {res && ctx.pend[res] > 0 && (
-              <button className="v-bubble" onClick={() => gather(res)} aria-label={`Sebrat ${RES_LABEL[res]}`}>{RES_ICON[res]} +{ctx.pend[res]}</button>
-            )}
-            <button className="v-img" onClick={() => onOpen(b.id)} aria-label={`${b.name} level ${fort.buildings[b.id]}`}>
-              <BuildingSprite id={b.id} level={fort.buildings[b.id]} size={200} />
-              {up && <span className="v-scaffold"><PixelSprite rows={UNIT_SPRITES.scaffold} size={200} /></span>}
-              {up && <span className="v-hammer">🔨</span>}
-            </button>
-            <span className="v-name"><span className="v-lvl">{fort.buildings[b.id]}</span>{b.name}{can && <span className="v-up">⬆</span>}</span>
-            {up && <span className="v-timer">{fmtTime(up.endsAt - now)}</span>}
-          </div>
+          <button key={r} className="f-bubble" style={at(PLACES[id].x, PLACES[id].y - 72)} onClick={() => gather(r)} aria-label={`Sebrat ${RES_LABEL[r]}`}>
+            {RES_ICON[r]} +{ctx.pend[r]}
+          </button>
         );
       })}
-      <button className={`v-chest ${chestReady ? 'ready' : 'locked'} ${shaking ? 'shake' : ''}`} style={{ left: `${CHEST_POS.x}%`, top: topPct(CHEST_POS.y) }}
-        onClick={openTheChest} aria-label="Denní truhla">
-        <PixelSprite rows={UNIT_SPRITES.chest} size={36} />
-      </button>
-      <div className="v-hero" style={{ left: '58%', top: topPct(52) }}><PixelAvatar tier={titleTier(ctx.heroLevel)} size={30} /></div>
-      {soldiers.map((k, i) => (
-        <div key={i} className="v-soldier" style={{ left: `${6 + (i % 4) * 7}%`, top: topPct(42 + Math.floor(i / 4) * 6), animationDelay: `${i * 0.23}s` }}>
-          <UnitSprite kind={k} size={18} />
+      {up && (
+        <div className="f-timer" style={at(PLACES[up.id].x, PLACES[up.id].y - (TOP[up.id] ?? 90))}>
+          <span className="f-hammer">🔨</span> {fmtTime(up.endsAt - now)}
         </div>
-      ))}
-      {[0, 1, 2].map((i) => (
-        <div key={i} className={`v-walker w${i}`} aria-hidden>
-          <PixelSprite rows={UNIT_SPRITES.villager} pal={{ B: ['#2563eb', '#16a34a', '#b45309'][i] }} size={12} />
+      )}
+      <button className={`f-chest ${chestReady ? 'ready' : 'locked'} ${shaking ? 'shake' : ''}`} style={at(CHEST.x, CHEST.y)} onClick={openTheChest} aria-label="Denní truhla">
+        <PixelSprite rows={UNIT_SPRITES.chest} size={30} />
+      </button>
+      <div className="f-hero" style={at(160, 452)}><PixelAvatar tier={titleTier(ctx.heroLevel)} size={28} /></div>
+      {soldiers.map((k, i) => (
+        <div key={i} className="f-soldier" style={{ ...at(30 + i * 15, 346), animationDelay: `${i * 0.23}s` }}>
+          <UnitSprite kind={k} size={16} />
         </div>
       ))}
       {fly.map((f) => (
-        <span key={f.id} className="v-fly" style={{ left: `${f.x + (f.i - 2.5) * 2.5}%`, top: topPct(f.y), animationDelay: `${f.i * 70}ms` }}>{RES_ICON[f.res]}</span>
+        <span key={f.id} className="v-fly" style={{ ...at(f.x + (f.i - 2.5) * 9, f.y), animationDelay: `${f.i * 70}ms` }}>{RES_ICON[f.res]}</span>
       ))}
       {toast && <div className="v-toast" key={toast.id}>{toast.text}</div>}
       <Modal open={!!reward} onClose={() => setReward(null)} title="🎁 Denní truhla">
@@ -676,9 +647,7 @@ function FortLogPage({ ctx }: { ctx: FortCtx }) {
   );
 }
 
-export default function FortPages({ route }: { route: string }) {
-  const ctx = useFort();
-  if (!ctx) return null;
+function FortPage({ route, ctx }: { route: string; ctx: FortCtx }) {
   if (!ctx.fort) return <Intro />;
   const fort = ctx.fort;
   if (route.startsWith('/fort/battle/')) return <FortBattle ctx={ctx} fort={fort} campId={Number(route.split('/').pop())} />;
@@ -686,4 +655,10 @@ export default function FortPages({ route }: { route: string }) {
   if (route === '/fort/campaign') return <FortCampaign ctx={ctx} fort={fort} />;
   if (route === '/fort/log') return <FortLogPage ctx={ctx} />;
   return <FortHome ctx={ctx} fort={fort} />;
+}
+
+export default function FortPages({ route }: { route: string }) {
+  const ctx = useFort();
+  if (!ctx) return null;
+  return <div className="fort-theme"><FortPage route={route} ctx={ctx} /></div>;
 }
