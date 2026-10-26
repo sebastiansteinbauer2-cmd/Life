@@ -6,9 +6,12 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import { setupUpdates } from './app/updates';
+import { handleSyncLink, startSync } from './sync';
 import './styles/global.css';
 
 setupUpdates();
+handleSyncLink();
+startSync();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

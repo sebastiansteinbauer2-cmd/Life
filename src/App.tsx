@@ -7,6 +7,7 @@ import { applyUpdate, onUpdateReady } from './app/updates';
 import type { ModuleId, Profile } from './data/types';
 import Home from './pages/Home';
 import Onboarding from './pages/Onboarding';
+import { SyncBadge } from './sync/SyncPanel';
 
 const Settings = lazy(() => import('./pages/Settings'));
 const Achievements = lazy(() => import('./pages/Achievements'));
@@ -75,6 +76,7 @@ export default function App() {
         <header className="topbar">
           <a className="brand" href="#/">⚔ Questy života</a>
           <div className="row" style={{ gap: 2 }}>
+            <SyncBadge />
             <a className="btn iconbtn" href="#/achievements" aria-label="Odznaky">🏅</a>
             <a className="btn iconbtn" href="#/settings" aria-label="Nastavení">⚙️</a>
           </div>

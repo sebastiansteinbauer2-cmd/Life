@@ -5,6 +5,8 @@ import { NumberField } from '../components/ui';
 import { dateKey } from '../lib/date';
 import { BUILTIN_EXERCISES, DEFAULT_MAX, GOAL_LABEL } from '../modules/training/plan';
 import { LEVEL_LABEL } from '../modules/math/topics';
+import SyncPanel from '../sync/SyncPanel';
+import { loadConfig } from '../sync';
 
 const EQUIPMENT: { id: Equipment; label: string }[] = [
   { id: 'hrazda', label: 'Hrazda' },
@@ -24,6 +26,7 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
   const [fide, setFide] = useState(1980);
   const [level, setLevel] = useState<MathLevel>('rozsireny');
   const [examDate, setExamDate] = useState('');
+  const [cloud, setCloud] = useState(() => !!loadConfig());
 
   const finish = async () => {
     await game.saveProfile({
@@ -113,8 +116,19 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
           <div key={i} className="grow" style={{ height: 4, borderRadius: 2, background: i <= step ? 'var(--gold)' : 'var(--border)' }} />
         ))}
       </div>
-      <div className="panel">{steps[step]}</div>
-      <div className="row">
+      {cloud ? (
+        <div className="panel">
+          <h2 style={{ marginTop: 0 }}>☁️ Stáhnout data z cloudu</h2>
+          <SyncPanel onboarding />
+          <button className="btn-sm" style={{ marginTop: 12 }} onClick={() => setCloud(false)}>‹ Zpět – začít jako nový hrdina</button>
+        </div>
+      ) : (
+        <div className="panel">{steps[step]}</div>
+      )}
+      {!cloud && step === 0 && (
+        <button className="btn-block" style={{ marginBottom: 12 }} onClick={() => setCloud(true)}>☁️ Už appku používám na jiném zařízení – stáhnout data</button>
+      )}
+      {!cloud && <div className="row">
         {step > 0 && <button onClick={() => setStep(step - 1)}>Zpět</button>}
         <span className="grow" />
         {step < steps.length - 1 ? (
@@ -122,7 +136,7 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
         ) : (
           <button className="primary" onClick={finish}>Začít dobrodružství ⚔️</button>
         )}
-      </div>
+      </div>}
     </div>
   );
 }

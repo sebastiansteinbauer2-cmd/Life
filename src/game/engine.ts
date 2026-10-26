@@ -100,6 +100,25 @@ export class GameEngine {
     });
   }
 
+  /**
+   * Přepočítá celkové XP a statistiky z historie XP.
+   * Po synchronizaci tak sedí součty, i když se XP získávalo na dvou zařízeních.
+   */
+  recomputeTotals(): Promise<boolean> {
+    return this.run(async () => {
+      const [profile, log] = await Promise.all([this.getProfile(), this.store.col('xpLog').all()]);
+      let xp = 0;
+      const statXp = Object.fromEntries(Object.keys(profile.statXp).map((k) => [k, 0])) as Profile['statXp'];
+      for (const e of log.sort((a, b) => a.ts - b.ts)) {
+        xp = Math.max(0, xp + e.amount);
+        statXp[e.stat] = Math.max(0, (statXp[e.stat] ?? 0) + e.amount);
+      }
+      if (xp === profile.xp && Object.entries(statXp).every(([k, v]) => profile.statXp[k as StatId] === v)) return false;
+      await this.store.col('profile').put({ ...profile, xp, statXp });
+      return true;
+    });
+  }
+
   award(input: AwardInput): Promise<void> {
     return this.run(() => this.awardInner(input, true));
   }

@@ -8,6 +8,8 @@ import type { MathLevel, ModuleId } from '../data/types';
 import { MODULES } from '../game/xp';
 import { dateKey } from '../lib/date';
 import { LEVEL_LABEL } from '../modules/math/topics';
+import SyncPanel from '../sync/SyncPanel';
+import { loadConfig, signOut } from '../sync';
 
 export default function Settings() {
   const p = useProfile();
@@ -54,7 +56,10 @@ export default function Settings() {
   const reset = async () => {
     if (!confirm('Opravdu smazat VŠECHNA data? Doporučuji nejdřív export zálohy.')) return;
     if (!confirm('Poslední varování – smazat?')) return;
+    // smaže jen toto zařízení – synchronizace se odpojí, data v cloudu zůstanou
+    if (loadConfig()) await signOut();
     await store.wipe();
+    await store.syncForget();
     location.reload();
   };
 
@@ -114,6 +119,11 @@ export default function Settings() {
         </div>
       </section>
 
+      <section className="panel" id="sync">
+        <h2 style={{ marginTop: 0 }}>☁️ Synchronizace zařízení</h2>
+        <SyncPanel />
+      </section>
+
       <section className="panel">
         <h2 style={{ marginTop: 0 }}>Záloha dat</h2>
         <button className="primary btn-block" style={{ marginBottom: 10 }} onClick={async () => { if (await backupNow()) setMsg('Záloha hotová ✓'); }}>
@@ -131,6 +141,7 @@ export default function Settings() {
       <section className="panel">
         <h2 style={{ marginTop: 0 }}>Nebezpečná zóna</h2>
         <button className="btn-danger btn-block" onClick={reset}>Smazat všechna data</button>
+        <p className="small muted">Smaže data v tomto zařízení. Když máš zapnutou synchronizaci, zařízení se odpojí a data v cloudu zůstanou.</p>
       </section>
       <p className="center small muted">
         Questy života · verze {buildTime()?.toLocaleString('cs-CZ') ?? '?'}<br />

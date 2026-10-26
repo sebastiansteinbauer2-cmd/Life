@@ -1,6 +1,6 @@
 # ⚔ Questy života
 
-Osobní gamifikovaný systém seberozvoje ve stylu RPG. Učení, trénink, šachy i objevy jsou **questy** – za každý dostáváš XP, levelíš a zlepšuješ statistiky postavy (Inteligence, Síla, Disciplína, Šachy).
+Osobní gamifikovaný systém seberozvoje ve stylu RPG. Učení, trénink, šachy i objevy jsou **questy** – za každý dostáváš XP, levelíš a zlepšuješ statistiky postavy (Inteligence, Síla, Disciplína, Šachy, Vytrvalost).
 
 - **Jádro hry** – level (na další level je potřeba 100 × level XP), tituly Nováček → Učeň → Tovaryš → Bojovník → Veterán → Mistr → Velmistr → Legenda, denní / týdenní / jednorázové a vlastní questy, streaky s bonusy za 7 / 30 / 100 dní, odznaky, toasty a efekt LEVEL UP (respektuje *prefers-reduced-motion*).
 - **∑ Matematika** – generátor příkladů z 10 témat (maturita CERMAT + přijímačky FIT ČVUT) ve 3 úrovních, kontrola odpovědí (zlomky, √, π, kořeny v libovolném pořadí, intervaly, komplexní čísla, výrazy, rovnice přímek), řešení krok za krokem, opakování slabých témat s rozestupy, boss fight (simulace přijímaček 0–100 b., hranice 70) a grafy.
@@ -14,7 +14,9 @@ Osobní gamifikovaný systém seberozvoje ve stylu RPG. Učení, trénink, šach
 - **Záloha jedním klepnutím** přes sdílení (Google Disk, e‑mail…) a připomínka, když záloha chybí víc než týden.
 - **💰 Finance** – napojení na Trading 212 (API klíč jen pro čtení): hodnota účtu, zisk/ztráta, pozice, graf portfolia, vklady a dividendy. Měsíční quest „investuj svůj cíl“, série měsíců v řadě (bonus za 3 / 6 / 12), XP za vklady, dividendy a milníky portfolia, odznaky.
 
-Data jsou uložená **jen ve tvém zařízení** (IndexedDB). V **Nastavení → Export** si pravidelně stahuj zálohu (JSON).
+- **☁️ Synchronizace zařízení** – telefon, tablet i počítač se stejnými daty přes tvůj vlastní projekt Supabase (zdarma).
+
+Data jsou uložená ve tvém zařízení (IndexedDB) a – když zapneš synchronizaci – i v tvém cloudu Supabase. V **Nastavení → Export** si můžeš kdykoli stáhnout zálohu (JSON).
 
 ---
 
@@ -26,17 +28,33 @@ src/
   game/            herní jádro: XP a levely, questy, streaky, odznaky, engine (+ testy)
   app/             globální stav (store, hooky), router, výchozí data
   components/      UI prvky: XP lišta, toasty, questy, grafy (Chart.js), KaTeX
-  pages/           Domů, Onboarding, Nastavení, Odznaky
+  pages/           Domů, Onboarding, Nastavení, Odznaky, Deník hrdiny, Obchod
+  sync/            synchronizace přes Supabase (deník změn, novější změna vyhrává)
   modules/
     math/          generátor příkladů (gen/*), parser odpovědí, opakování, stránky (+ testy)
     training/      plán, progrese, stránky (+ testy)
     chess/         Chess.com API, synchronizace, stránky (+ testy)
-    discover/      objevy, deník, knihovna, kvíz (+ testy)
-api/chess.js       volitelná proxy pro Chess.com (Vercel Function)
+    discover/      objevy, videa z YouTube, deník, knihovna, kvíz (+ testy)
+    finance/       Trading 212, cíle, grafy (+ testy)
+    ironman/       plán, ruční zápis, import ze Stravy (+ testy)
+api/               Vercel funkce: proxy pro Trading 212, Chess.com, videa z YouTube, Strava
+supabase/          SQL pro tabulku synchronizace
 public/            ikony aplikace
 ```
 
 **Výměna úložiště za cloud (např. Supabase):** celá aplikace pracuje jen s abstraktní třídou `DataStore` (`src/data/store.ts`). Stačí napsat třeba `SupabaseStore`, který implementuje metodu `col(name)` (operace `all / get / put / bulkPut / delete / clear` nad tabulkou), a v `src/app/context.tsx` vyměnit `new DexieStore()` za novou třídu. Názvy kolekcí a typy záznamů jsou v `src/data/types.ts`.
+
+**Synchronizace (Supabase):** každý zápis do úložiště se zapíše i do deníku změn (`_sync` v IndexedDB). Aplikace změny odesílá do tabulky `questy_records` a stahuje změny z ostatních zařízení – při startu, po každé změně (za 3 s), při návratu do aplikace a každé 2 minuty. Když se stejný záznam změní na dvou zařízeních, vyhraje novější změna; celkové XP se po synchronizaci přepočítá z historie, takže se XP z obou zařízení sečte. Řádky chrání pravidlo RLS – každý účet vidí jen svoje.
+
+Nastavení (jednou, cca 5 minut):
+1. Na <https://supabase.com> si založ účet a **New project** (region třeba Central EU – Frankfurt).
+2. **SQL Editor → New query** → vlož obsah souboru `supabase/schema.sql` (nebo tlačítko *Zkopírovat SQL* v aplikaci) → **Run**.
+3. Volitelně **Authentication → Sign In / Providers → Email** → vypni **Confirm email**.
+4. Zkopíruj **Project URL** a veřejný klíč **publishable** (nebo **anon**) – *ne* secret / service_role.
+5. V aplikaci **Nastavení → Synchronizace zařízení** obojí vlož, vytvoř si účet a dej **Nahrát a zapnout synchronizaci**.
+6. Na dalším zařízení otevři odkaz z tlačítka **Poslat odkaz pro další zařízení** (nebo při prvním spuštění klepni na **Už appku používám na jiném zařízení**), přihlas se a dej **Stáhnout do tohoto zařízení**.
+
+Klíče k Trading 212 a Stravě se do cloudu neposílají.
 
 **Trading 212 a CORS:** API klíč se ukládá jen v telefonu (localStorage) – není v exportované záloze. Aplikace nejdřív zkusí API volat přímo; pokud to prohlížeč zablokuje (CORS), použije proxy `api/t212.js`. Tu získáš nasazením projektu na Vercel (viz níže) a do modulu Finance → *Nastavení propojení* zadáš `https://<tvoje-app>.vercel.app/api/t212`. Aplikace samotná může dál běžet na GitHub Pages.
 
@@ -98,11 +116,11 @@ Každý další push do `main` aplikaci automaticky aktualizuje. (Pozn.: u soukr
 1. Otevři adresu aplikace v **Chrome** na telefonu.
 2. Klepni na **⋮** (vpravo nahoře) → **Přidat na plochu** / **Nainstalovat aplikaci** → **Instalovat**.
 3. Na ploše se objeví ikona s mečem ⚔. Aplikace se otevírá přes celou obrazovku jako normální aplikace a **funguje i offline**.
-4. Při prvním spuštění projdeš onboardingem (jméno, maxima cviků, Chess.com, úroveň matematiky).
+4. Při prvním spuštění projdeš onboardingem (jméno, maxima cviků, Chess.com, úroveň matematiky) – nebo si stáhneš data z cloudu, pokud už appku máš na jiném zařízení.
 
 Na iPhonu: otevři adresu v Safari → **Sdílet** → **Přidat na plochu**.
 
-> ⚠️ Data jsou v prohlížeči daného zařízení. Když vymažeš data prohlížeče nebo aplikaci odinstaluješ, přijdeš o ně – proto si občas udělej **Export zálohy** (Nastavení) a ulož si soubor třeba na Google Disk. Zálohu jde nahrát i do jiného zařízení přes **Import**.
+> ⚠️ Bez synchronizace jsou data jen v prohlížeči daného zařízení. Když vymažeš data prohlížeče nebo aplikaci odinstaluješ, přijdeš o ně – proto si zapni **synchronizaci**, nebo si občas udělej **Export zálohy** (Nastavení) a ulož si soubor třeba na Google Disk.
 
 ---
 
@@ -119,6 +137,7 @@ Na iPhonu: otevři adresu v Safari → **Sdílet** → **Přidat na plochu**.
 | Rekordní rapid rating / rozbor partie | +30 / +20 | Šachy |
 | Kapitola knihy / dočtená kniha | +30 / +150 | Šachy |
 | Další objev v jednom dni | +5 | Inteligence |
+| Plavání / kolo / běh (podle vzdálenosti a času) | 5–150 | Vytrvalost |
 | Série 7 / 30 / 100 dní (celková; modulová poloviční) | 50 / 200 / 500 | Disciplína |
 | Vklad na Trading 212 (podle měsíčního cíle) | 10–100 | Disciplína |
 | Dividenda / nový milník portfolia | +5 / +100 | Disciplína |
