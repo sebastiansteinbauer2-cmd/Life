@@ -397,7 +397,7 @@ button.chip { min-height: 32px; padding: 4px 12px; font-size: 0.85rem; }
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55), 0 0 18px rgba(245, 197, 66, 0.15);
   animation: toast-in 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.3), toast-out 0.4s ease 2.6s forwards;
 }
-.toast .big { font-family: var(--font-pixel); color: var(--gold); font-size: 1.15rem; letter-spacing: 0.04em; white-space: nowrap; }
+.toast .big { text-transform: uppercase; font-family: var(--font-pixel); color: var(--gold); font-size: 1.15rem; letter-spacing: 0.04em; white-space: nowrap; }
 .toast.neg { border-left-color: var(--red); }
 .toast.neg .big { color: var(--red); }
 @keyframes toast-in { from { opacity: 0; transform: translateY(-16px) scale(0.9); } to { opacity: 1; transform: none; } }
@@ -441,6 +441,31 @@ button.chip { min-height: 32px; padding: 4px 12px; font-size: 0.85rem; }
 .timer { font-family: var(--font-pixel); color: var(--gold); font-size: 1.3rem; letter-spacing: 0.05em; }
 .timer.low { color: var(--red); animation: flicker 1s infinite; }
 
+/* Videa */
+.video-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+.video-card {
+  display: flex; gap: 10px; align-items: flex-start; justify-content: flex-start; width: 100%; padding: 8px; text-align: left;
+  background: var(--bg-2); border: 1px solid var(--border); border-radius: 12px; min-height: 0;
+}
+.video-card.watched { opacity: 0.6; }
+.vthumb { display: block; position: relative; flex: none; width: 140px; aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; background: #000; }
+.vthumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.vplay {
+  position: absolute; inset: 0; margin: auto; width: 36px; height: 26px; border-radius: 8px;
+  background: rgba(220, 38, 38, 0.92); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.8rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+.vseen { position: absolute; left: 4px; bottom: 4px; font-size: 0.65rem; background: rgba(0, 0, 0, 0.75); color: var(--green); padding: 1px 5px; border-radius: 4px; }
+.vinfo { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.vtitle { font-weight: 500; font-size: 0.92rem; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; color: var(--text); }
+.video-card.big { flex-direction: column; padding: 0; overflow: hidden; border-color: rgba(245, 197, 66, 0.35); }
+.video-card.big .vthumb { width: 100%; border-radius: 0; }
+.video-card.big .vplay { width: 60px; height: 42px; font-size: 1.2rem; }
+.video-card.big .vinfo { padding: 10px 12px 12px; }
+.video-card.big .vtitle { font-size: 1.02rem; }
+.player { position: relative; width: 100%; aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden; background: #000; }
+.player iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+
 /* Tabulky a seznamy */
 table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
 th, td { text-align: left; padding: 7px 4px; border-bottom: 1px solid var(--border); }
@@ -469,6 +494,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 
 @media (min-width: 560px) {
   .badge-grid { grid-template-columns: repeat(4, 1fr); }
+  .video-grid { grid-template-columns: 1fr 1fr; }
   .tiles { grid-template-columns: repeat(5, 1fr); }
   .tiles > :last-child:nth-child(odd) { grid-column: auto; }
   .modal { border-radius: 18px; margin-bottom: 5vh; }

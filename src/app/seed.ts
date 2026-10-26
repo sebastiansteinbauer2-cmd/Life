@@ -16,6 +16,7 @@ export const BUILTIN_RESOURCES: Resource[] = [
   { id: 'crashcourse', title: 'Crash Course World History', url: 'https://www.youtube.com/@crashcourse', category: 'historie', description: 'Svižný přehled světových dějin', builtIn: true },
   { id: 'kurzgesagt', title: 'Kurzgesagt', url: 'https://www.youtube.com/@kurzgesagt', category: 'věda', description: 'Věda v krásných animacích', builtIn: true },
   { id: 'veritasium', title: 'Veritasium', url: 'https://www.youtube.com/@veritasium', category: 'věda', description: 'Fyzika a překvapivé experimenty', builtIn: true },
+  { id: 'teded', title: 'TED-Ed', url: 'https://www.youtube.com/@TEDEd', category: 'věda', description: 'Krátké animované lekce o čemkoli', builtIn: true },
   { id: '3b1b', title: '3Blue1Brown', url: 'https://www.youtube.com/@3blue1brown', category: 'věda', description: 'Matematika vizuálně – skvělé k přípravě na FIT', builtIn: true },
   { id: 'wbw', title: 'Wait But Why', url: 'https://waitbutwhy.com', category: 'přemýšlení', description: 'Dlouhé eseje o velkých otázkách', builtIn: true },
   { id: 'owid', title: 'Our World in Data', url: 'https://ourworldindata.org', category: 'svět v datech', description: 'Data o tom, jak se svět mění', builtIn: true },

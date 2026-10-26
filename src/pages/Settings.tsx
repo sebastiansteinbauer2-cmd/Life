@@ -11,11 +11,15 @@ export default function Settings() {
   const [name, setName] = useState(p.name);
   const [chess, setChess] = useState(p.chessUsername);
   const [proxy, setProxy] = useState(p.chessProxyUrl);
+  const [server, setServer] = useState(p.serverUrl);
   const [msg, setMsg] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
 
   const save = async () => {
-    await game.saveProfile({ name: name.trim() || 'Hrdina', chessUsername: chess.trim(), chessProxyUrl: proxy.trim() });
+    await game.saveProfile({
+      name: name.trim() || 'Hrdina', chessUsername: chess.trim(), chessProxyUrl: proxy.trim(),
+      serverUrl: server.trim().replace(/[.\s/]+$/, ''),
+    });
     setMsg('Uloženo ✓');
   };
 
@@ -69,6 +73,11 @@ export default function Settings() {
         <div className="field">
           <label>Datum přijímaček / maturity</label>
           <input type="date" value={p.examDate} onChange={(e) => game.saveProfile({ examDate: e.target.value })} />
+        </div>
+        <h2>Server (Vercel)</h2>
+        <div className="field">
+          <label>Adresa tvého Vercel serveru – pro videa z YouTube (a proxy). Když je prázdná, vezme se z Financí.</label>
+          <input value={server} onChange={(e) => setServer(e.target.value)} placeholder="https://life-xxxx.vercel.app" autoCapitalize="none" />
         </div>
         <h2>Chess.com</h2>
         <div className="field">

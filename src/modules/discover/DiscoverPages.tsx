@@ -7,15 +7,17 @@ import { Empty, Modal, Tabs } from '../../components/ui';
 import type { Discovery, Resource } from '../../data/types';
 import { dateKey, daysBetween, formatDate, uid } from '../../lib/date';
 import { pickQuizEntries } from './quiz';
+import { EXTRA_XP, saveDiscovery } from './save';
+import { VideoOfDay, VideosPage } from './Videos';
 
 const TABS = [
   { path: '/discover', label: 'Objev dne' },
+  { path: '/discover/videos', label: '📺 Videa' },
   { path: '/discover/journal', label: 'Deník' },
   { path: '/discover/library', label: 'Knihovna' },
   { path: '/discover/quiz', label: 'Kvíz' },
 ];
 const PRESET_TAGS = ['historie', 'věda', 'matematika', 'technologie', 'příroda', 'vesmír', 'společnost', 'přemýšlení', 'umění', 'zdraví'];
-const EXTRA_XP = 5;
 
 const ext = { target: '_blank', rel: 'noopener noreferrer' } as const;
 
@@ -38,13 +40,7 @@ function DiscoverToday() {
   const save = async () => {
     if (!text.trim()) return;
     const extraTag = customTag.trim().toLowerCase();
-    const d: Discovery = {
-      id: uid(), ts: Date.now(), date: today, text: text.trim(),
-      tags: [...new Set([...tags, ...(extraTag ? [extraTag] : [])])], sourceId: source || undefined,
-    };
-    await store.col('discoveries').put(d);
-    const completed = await game.progressQuest('discover-daily');
-    if (!completed) await game.award({ amount: EXTRA_XP, stat: 'int', module: 'discover', label: 'Další objev' });
+    await saveDiscovery({ text, tags: [...new Set([...tags, ...(extraTag ? [extraTag] : [])])], sourceId: source || undefined });
     setText(''); setTags([]); setSource(''); setCustomTag('');
   };
 
@@ -53,8 +49,9 @@ function DiscoverToday() {
       <h1>🔭 Objevy</h1>
       <Tabs items={TABS} active="/discover" />
       <QuestList quests={quests ?? []} />
-      <section className="panel gold">
-        <h2 style={{ marginTop: 0 }}>Co ses dnes dozvěděl?</h2>
+      <VideoOfDay />
+      <section className="panel">
+        <h2 style={{ marginTop: 0 }}>Nebo zapiš jiný objev</h2>
         <div className="field">
           <textarea value={text} onChange={(e) => setText(e.target.value)} maxLength={400}
             placeholder="Jednou větou, např.: Chobotnice mají tři srdce a modrou krev." aria-label="Objev" />
@@ -101,6 +98,9 @@ function EntryRow({ e, resources, onTag }: { e: Discovery; resources: Resource[]
   return (
     <div className="list-item">
       <div>{e.text}</div>
+      {e.videoId && (
+        <a className="small" href={`https://www.youtube.com/watch?v=${e.videoId}`} target="_blank" rel="noopener noreferrer">📺 {e.videoTitle ?? 'Video'}</a>
+      )}
       <div className="row wrap small muted" style={{ gap: 6, marginTop: 4 }}>
         <span>{formatDate(e.date)}</span>
         {src && <span>· {src}</span>}
@@ -255,7 +255,18 @@ function Quiz() {
   );
 }
 
+function Videos() {
+  return (
+    <div>
+      <h1>📺 Videa</h1>
+      <Tabs items={TABS} active="/discover/videos" />
+      <VideosPage />
+    </div>
+  );
+}
+
 export default function DiscoverPages({ route }: { route: string }) {
+  if (route === '/discover/videos') return <Videos />;
   if (route === '/discover/journal') return <Journal />;
   if (route === '/discover/library') return <Library />;
   if (route === '/discover/quiz') return <Quiz />;

@@ -46,6 +46,7 @@ export function defaultProfile(): Profile {
     ],
     financeReturn: 7,
     financeWithdrawal: 4,
+    serverUrl: '',
   };
 }
 

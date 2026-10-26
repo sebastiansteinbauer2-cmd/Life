@@ -32,6 +32,7 @@ export interface Profile {
   financeTargets: FinanceTarget[];
   financeReturn: number; // očekávaný roční výnos v % (pro odhad)
   financeWithdrawal: number; // bezpečná míra výběru v % ročně (pravidlo 4 %)
+  serverUrl: string; // vlastní Vercel server (proxy pro Trading 212 a YouTube)
 }
 
 /** Velký cíl: částka (např. auto) nebo pasivní příjem měsíčně. */
@@ -191,6 +192,8 @@ export interface Discovery {
   tags: string[];
   sourceId?: string;
   lastReviewed?: string;
+  videoId?: string;
+  videoTitle?: string;
 }
 
 export interface Resource {
