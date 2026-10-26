@@ -1,9 +1,9 @@
-# Automatické nasazení na GitHub Pages při každém pushi do větve main.
+# Automatické nasazení na GitHub Pages při každém pushi do hlavní i vývojové větve.
 name: Nasazení na GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches: [main, claude/questy-zivota-rpg-d01vmc]
   workflow_dispatch:
 
 permissions:
