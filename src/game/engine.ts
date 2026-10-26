@@ -39,6 +39,13 @@ export function defaultProfile(): Profile {
     examDate: '',
     financeGoal: 2000,
     financeProxyUrl: '',
+    financeTargets: [
+      // základní cena dle konfigurátoru Porsche ČR (vč. DPH, bez výbavy)
+      { id: 'porsche', kind: 'value', title: 'Porsche 911 GT3 RS', icon: '🏎️', target: 6_631_197 },
+      { id: 'income-50k', kind: 'income', title: '50 000 Kč měsíčně', icon: '💸', target: 50_000 },
+    ],
+    financeReturn: 7,
+    financeWithdrawal: 4,
   };
 }
 
@@ -218,6 +225,7 @@ export class GameEngine {
       financeMilestone: metaNum('financeMilestone'),
       financePositions: lastSnap?.positions.length ?? 0,
       financeBestStreak: metaNum('financeBestStreak'),
+      financeGoalsDone: meta.filter((m) => m.id.startsWith('goal:')).length,
     };
   }
 

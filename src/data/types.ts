@@ -29,6 +29,18 @@ export interface Profile {
   examDate: string;
   financeGoal: number; // měsíční cíl investování (v měně účtu)
   financeProxyUrl: string;
+  financeTargets: FinanceTarget[];
+  financeReturn: number; // očekávaný roční výnos v % (pro odhad)
+  financeWithdrawal: number; // bezpečná míra výběru v % ročně (pravidlo 4 %)
+}
+
+/** Velký cíl: částka (např. auto) nebo pasivní příjem měsíčně. */
+export interface FinanceTarget {
+  id: string;
+  kind: 'value' | 'income';
+  title: string;
+  icon: string;
+  target: number;
 }
 
 export interface XpEntry {

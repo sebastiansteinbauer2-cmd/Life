@@ -6,8 +6,9 @@ import { QuestList } from '../../components/Quests';
 import { Empty, Tabs, XpBar } from '../../components/ui';
 import { addMonths, formatDate, monthKey } from '../../lib/date';
 import {
-  formatMoney, formatPct, milestonesFor, monthStreak, netByMonth, positionReturn, shortTicker,
+  avgMonthlyDeposit, formatMoney, formatPct, milestonesFor, monthStreak, netByMonth, positionReturn, shortTicker,
 } from './logic';
+import { FinanceGoals } from './Goals';
 import { syncFinance } from './sync';
 import { loadCreds, saveCreds, type T212Env } from './t212Api';
 
@@ -189,6 +190,8 @@ function FinanceHome() {
       </section>
 
       <QuestList quests={quests ?? []} />
+
+      <FinanceGoals total={snap?.total ?? 0} currency={cur} avgDeposit={avgMonthlyDeposit(byMonth)} />
 
       <section className="panel">
         <h3 style={{ marginTop: 0 }}>Vývoj portfolia</h3>

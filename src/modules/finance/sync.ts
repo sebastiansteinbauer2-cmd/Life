@@ -2,7 +2,7 @@ import { game, store } from '../../app/context';
 import type { FinanceDividend, FinanceTx, FinanceTxType } from '../../data/types';
 import { dateKey, monthKey } from '../../lib/date';
 import {
-  DIVIDEND_XP, MILESTONE_XP, STREAK_MONTH_BONUSES, depositXp, milestoneIndex, monthStreak, netByMonth,
+  DIVIDEND_XP, GOAL_XP, MILESTONE_XP, requiredCapital, STREAK_MONTH_BONUSES, depositXp, milestoneIndex, monthStreak, netByMonth,
 } from './logic';
 import {
   loadCreds, nextPageParams, t212, t212First, T212Error,
@@ -154,6 +154,16 @@ export async function syncFinance(onProgress: (msg: string) => void = () => unde
       xp += MILESTONE_XP * milestones;
     }
     await store.col('meta').put({ id: 'financeMilestone', value: idx });
+  }
+
+  // Velké cíle (Porsche, pasivní příjem…) – jednorázový bonus po dosažení
+  for (const t of profile.financeTargets) {
+    if (total < requiredCapital(t, profile.financeWithdrawal)) continue;
+    const key = `goal:${t.id}:${t.target}`;
+    if (await store.col('meta').get(key)) continue;
+    await store.col('meta').put({ id: key, value: Date.now() });
+    await game.award({ amount: GOAL_XP, stat: 'dis', module: 'finance', label: `Cíl splněn: ${t.title}` });
+    xp += GOAL_XP;
   }
 
   // Měsíční quest a série měsíců

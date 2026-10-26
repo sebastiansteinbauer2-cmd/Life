@@ -1,4 +1,4 @@
-import type { FinancePosition, FinanceTx } from '../../data/types';
+import type { FinancePosition, FinanceTarget, FinanceTx } from '../../data/types';
 import { addMonths, monthKey } from '../../lib/date';
 
 export const monthOf = (ms: number) => monthKey(new Date(ms));
@@ -80,3 +80,56 @@ export function formatMoney(v: number, currency: string): string {
 }
 
 export const formatPct = (v: number) => `${v >= 0 ? '+' : ''}${(v * 100).toFixed(1).replace('.', ',')} %`;
+
+/** Kolik kapitálu je potřeba: u příjmu podle pravidla bezpečného výběru (4 % ročně). */
+export function requiredCapital(t: Pick<FinanceTarget, 'kind' | 'target'>, withdrawalPct: number): number {
+  if (t.kind === 'value') return t.target;
+  return withdrawalPct > 0 ? (t.target * 12) / (withdrawalPct / 100) : Infinity;
+}
+
+/** Měsíční pasivní příjem, který by portfolio dnes „vyplácelo“. */
+export const monthlyIncome = (portfolio: number, withdrawalPct: number) => (portfolio * withdrawalPct) / 100 / 12;
+
+/**
+ * Za kolik měsíců portfolio dosáhne cíle při měsíčním vkladu a ročním výnosu (měsíčně složeno).
+ * null = nedosažitelné do 100 let.
+ */
+export function monthsToTarget(current: number, monthly: number, annualPct: number, target: number): number | null {
+  if (current >= target) return 0;
+  const r = Math.pow(1 + annualPct / 100, 1 / 12) - 1;
+  let v = current;
+  for (let m = 1; m <= 1200; m++) {
+    v = v * (1 + r) + monthly;
+    if (v >= target) return m;
+  }
+  return null;
+}
+
+/** Průměrný čistý měsíční vklad za posledních N ukončených měsíců (od prvního vkladu). */
+export function avgMonthlyDeposit(byMonth: Record<string, number>, current: string = monthKey(), n = 6): number {
+  const months = Object.keys(byMonth).sort();
+  if (!months.length) return 0;
+  const first = months[0];
+  const window: string[] = [];
+  for (let i = 1; i <= n; i++) {
+    const m = addMonths(current, -i);
+    if (m < first) break;
+    window.push(m);
+  }
+  // pokud je historie kratší než 1 ukončený měsíc, vezmi aspoň aktuální měsíc
+  if (!window.length) return Math.max(0, byMonth[current] ?? 0);
+  return Math.max(0, window.reduce((s, m) => s + (byMonth[m] ?? 0), 0) / window.length);
+}
+
+export function formatDuration(months: number): string {
+  if (months <= 0) return 'už teď';
+  const y = Math.floor(months / 12);
+  const m = months % 12;
+  const yy = y === 1 ? '1 rok' : y >= 2 && y <= 4 ? `${y} roky` : `${y} let`;
+  const mm = m === 1 ? '1 měsíc' : m >= 2 && m <= 4 ? `${m} měsíce` : `${m} měsíců`;
+  if (!y) return mm;
+  if (!m) return yy;
+  return `${yy} a ${mm}`;
+}
+
+export const GOAL_XP = 500;

@@ -21,6 +21,7 @@ export interface AchievementCtx {
   financeMilestone: number;
   financePositions: number;
   financeBestStreak: number;
+  financeGoalsDone: number;
 }
 
 export interface AchievementDef {
@@ -66,5 +67,6 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   { id: 'fin-div', title: 'Pasivní příjem', description: 'Získej první dividendu', icon: '🪙', check: (c) => c.financeDividends >= 1 },
   { id: 'fin-diverse', title: 'Diverzifikace', description: 'Měj v portfoliu 10 a víc pozic', icon: '🧺', check: (c) => c.financePositions >= 10 },
   { id: 'fin-streak-6', title: 'Pravidelný investor', description: 'Splň měsíční cíl 6 měsíců v řadě', icon: '📅', check: (c) => c.financeBestStreak >= 6 },
+  { id: 'fin-dream', title: 'Splněný sen', description: 'Dosáhni velkého cíle ve Financích', icon: '🏁', check: (c) => c.financeGoalsDone >= 1 },
   { id: 'fin-streak-12', title: 'Rok disciplíny', description: 'Splň měsíční cíl 12 měsíců v řadě', icon: '🏦', check: (c) => c.financeBestStreak >= 12 },
 ];
