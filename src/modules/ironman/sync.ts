@@ -1,6 +1,6 @@
 import { game, store } from '../../app/context';
 import type { Activity, StatId } from '../../data/types';
-import { dateKey, parseDateKey, weekStart } from '../../lib/date';
+import { dateKey, parseDateKey, uid, weekStart } from '../../lib/date';
 import { activityStat, activityXp, brickDays, disciplineOf, records, sportIcon } from './sports';
 import { fetchActivities, type RawActivity } from './strava';
 
@@ -17,39 +17,37 @@ function toActivity(a: RawActivity): Activity {
   };
 }
 
-export async function syncStrava(base: string): Promise<StravaSyncResult> {
-  const lastSync = ((await store.col('meta').get('stravaLastSync'))?.value as number | undefined) ?? null;
-  const firstSync = !lastSync;
+/**
+ * Společné zpracování nových aktivit (Strava API, import exportu, ruční zápis):
+ * uloží je, případně připíše XP a rekordy, posune týdenní questy a zkontroluje odznaky.
+ */
+export async function processNewActivities(fresh: Activity[], opts: { award: boolean }): Promise<{ xp: number; prs: string[] }> {
   const existing = await store.col('activities').all();
   const known = new Set(existing.map((a) => a.id));
-  const latest = Math.max(0, ...existing.map((a) => a.ts));
-  // první načtení: posledních 120 dní; pak jen nové (s rezervou 2 dní na pozdě nahrané aktivity)
-  const after = Math.floor((latest ? latest - 2 * 86_400_000 : Date.now() - 120 * 86_400_000) / 1000);
-  const fresh = (await fetchActivities(base, after)).map(toActivity).filter((a) => !known.has(a.id));
-
+  fresh = fresh.filter((a) => !known.has(a.id));
   const before = records(existing);
   let xp = 0;
   const prs: string[] = [];
-  if (!firstSync) {
+  if (opts.award) {
     for (const a of fresh) a.xp = activityXp(a);
     // XP po statistikách (posilovna → Síla, zbytek → Vytrvalost)
     const byStat = new Map<StatId, Activity[]>();
     for (const a of fresh) byStat.set(activityStat(a.sport), [...(byStat.get(activityStat(a.sport)) ?? []), a]);
     for (const [stat, list] of byStat) {
       const amount = list.reduce((n, a) => n + (a.xp ?? 0), 0);
-      const label = list.length === 1 ? `${sportIcon(list[0].sport)} ${list[0].name}` : `${list.length} aktivit ze Stravy`;
+      const label = list.length === 1 ? `${sportIcon(list[0].sport)} ${list[0].name}` : `${list.length} tréninků`;
       await game.award({ amount, stat, module: 'ironman', label });
       xp += amount;
     }
   }
   if (fresh.length) await store.col('activities').bulkPut(fresh);
 
-  // osobní rekordy (jen při dalších synchronizacích)
-  if (!firstSync && fresh.length) {
-    const after2 = records([...existing, ...fresh]);
-    const check = (key: keyof typeof after2, label: string) => {
+  // osobní rekordy – bonus jen u nových tréninků, ne při importu historie
+  if (opts.award && fresh.length) {
+    const after = records([...existing, ...fresh]);
+    const check = (key: keyof typeof after, label: string) => {
       const b = before[key];
-      const n = after2[key];
+      const n = after[key];
       if (n && (!b || n.id !== b.id) && fresh.some((f) => f.id === n.id)) prs.push(label);
     };
     check('fastest5k', 'nejrychlejší běh 5+ km');
@@ -64,8 +62,7 @@ export async function syncStrava(base: string): Promise<StravaSyncResult> {
 
   // týdenní questy podle aktivit tohoto týdne
   const all = [...existing, ...fresh];
-  const monday = weekStart();
-  const mondayTs = parseDateKey(monday).getTime();
+  const mondayTs = parseDateKey(weekStart()).getTime();
   const thisWeek = all.filter((a) => parseDateKey(a.date).getTime() >= mondayTs);
   const count = (d: string) => thisWeek.filter((a) => disciplineOf(a.sport) === d).length;
   if (count('swim')) await game.progressQuest('im-swim', { setTo: count('swim') });
@@ -75,9 +72,41 @@ export async function syncStrava(base: string): Promise<StravaSyncResult> {
   for (const d of bricks) if (!(await store.col('meta').get(`brick:${d}`))) await store.col('meta').put({ id: `brick:${d}`, value: true });
   if (bricks.some((d) => parseDateKey(d).getTime() >= mondayTs)) await game.progressQuest('im-brick', { setTo: 1 });
   // dnešní aktivita = splněný denní trénink
-  if (all.some((a) => a.date === dateKey())) await game.progressQuest('train-workout', { setTo: 1 });
+  if (fresh.some((a) => a.date === dateKey())) await game.progressQuest('train-workout', { setTo: 1 });
 
-  await store.col('meta').put({ id: 'stravaLastSync', value: Date.now() });
   await game.checkAchievements();
+  return { xp, prs };
+}
+
+export async function syncStrava(base: string): Promise<StravaSyncResult> {
+  const lastSync = ((await store.col('meta').get('stravaLastSync'))?.value as number | undefined) ?? null;
+  const firstSync = !lastSync;
+  const existing = await store.col('activities').all();
+  const known = new Set(existing.map((a) => a.id));
+  const latest = Math.max(0, ...existing.map((a) => a.ts));
+  // první načtení: posledních 120 dní; pak jen nové (s rezervou 2 dní na pozdě nahrané aktivity)
+  const after = Math.floor((latest ? latest - 2 * 86_400_000 : Date.now() - 120 * 86_400_000) / 1000);
+  const fresh = (await fetchActivities(base, after)).map(toActivity).filter((a) => !known.has(a.id));
+  const { xp, prs } = await processNewActivities(fresh, { award: !firstSync });
+  await store.col('meta').put({ id: 'stravaLastSync', value: Date.now() });
   return { firstSync, added: fresh.length, xp, prs };
+}
+
+/** Import historie z exportu Stravy – bez XP (je to minulost), ale odemkne odznaky a rekordy. */
+export async function importActivities(list: Activity[]): Promise<{ added: number; total: number }> {
+  const known = new Set((await store.col('activities').all()).map((a) => a.id));
+  const fresh = list.filter((a) => !known.has(a.id));
+  await processNewActivities(fresh, { award: false });
+  return { added: fresh.length, total: list.length };
+}
+
+/** Ruční zápis tréninku – plné XP jako za nový trénink. */
+export async function addManualActivity(a: Omit<Activity, 'id' | 'xp'>): Promise<{ xp: number; prs: string[] }> {
+  return processNewActivities([{ ...a, id: `m-${uid()}` }], { award: true });
+}
+
+/** Smazání ručně zapsaného tréninku (vrátí i XP). */
+export async function deleteActivity(a: Activity): Promise<void> {
+  await store.col('activities').delete(a.id);
+  if (a.xp) await game.award({ amount: -a.xp, stat: activityStat(a.sport), module: 'ironman', label: `Smazáno: ${a.name}` });
 }

@@ -33,7 +33,7 @@ export function QuestRow({ q }: { q: QuestView }) {
           {q.done ? '✓' : q.target > 1 ? '+' : ''}
         </button>
       ) : (
-        <div className="qicon" aria-hidden>{q.done ? '✅' : MODULE_ICON[q.module]}</div>
+        <div className="qicon" aria-hidden>{q.done ? '✅' : q.icon ?? MODULE_ICON[q.module]}</div>
       )}
       <div className="grow">
         {q.route && !q.done ? (

@@ -15,6 +15,7 @@ export interface Quest {
   manual: boolean;
   custom: boolean;
   route?: string;
+  icon?: string;
 }
 
 interface BuiltinQuest extends Quest {
@@ -71,19 +72,19 @@ export const BUILTIN_QUESTS: BuiltinQuest[] = [
     recurrence: 'weekly', target: 1, manual: false, custom: false, route: '/discover/quiz',
   },
   {
-    id: 'im-swim', title: 'Plavání 2× týdně', description: 'Načte se ze Stravy.', module: 'ironman', stat: 'end',
+    id: 'im-swim', icon: '🏊', title: 'Plavání 2× týdně', description: 'Zapiš trénink nebo naimportuj ze Stravy.', module: 'ironman', stat: 'end',
     difficulty: 'hard', recurrence: 'weekly', target: 2, manual: false, custom: false, route: '/ironman',
   },
   {
-    id: 'im-bike', title: 'Kolo 2× týdně', description: 'Načte se ze Stravy.', module: 'ironman', stat: 'end',
+    id: 'im-bike', icon: '🚴', title: 'Kolo 2× týdně', description: 'Zapiš trénink nebo naimportuj ze Stravy.', module: 'ironman', stat: 'end',
     difficulty: 'hard', recurrence: 'weekly', target: 2, manual: false, custom: false, route: '/ironman',
   },
   {
-    id: 'im-run', title: 'Běh 3× týdně', description: 'Načte se ze Stravy.', module: 'ironman', stat: 'end',
+    id: 'im-run', icon: '🏃', title: 'Běh 3× týdně', description: 'Zapiš trénink nebo naimportuj ze Stravy.', module: 'ironman', stat: 'end',
     difficulty: 'hard', recurrence: 'weekly', target: 3, manual: false, custom: false, route: '/ironman',
   },
   {
-    id: 'im-brick', title: 'Brick: kolo + hned běh', description: 'Obojí v jeden den – zvykání nohou na běh po kole.', module: 'ironman', stat: 'end',
+    id: 'im-brick', icon: '🧱', title: 'Brick: kolo + hned běh', description: 'Obojí v jeden den – zvykání nohou na běh po kole.', module: 'ironman', stat: 'end',
     difficulty: 'epic', recurrence: 'weekly', target: 1, manual: false, custom: false, route: '/ironman',
   },
   {

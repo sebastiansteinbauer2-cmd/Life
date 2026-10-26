@@ -3,7 +3,7 @@ import { game, store, useProfile, useQuery } from '../../app/context';
 import { useQuests } from '../../app/hooks';
 import { LineChart } from '../../components/Charts';
 import { QuestList } from '../../components/Quests';
-import { Empty, MiniBar, Tabs, XpBar } from '../../components/ui';
+import { Empty, MiniBar, Modal, Tabs, XpBar } from '../../components/ui';
 import type { Activity } from '../../data/types';
 import { addDays, dateKey, daysBetween, formatDate, weekStart } from '../../lib/date';
 import { serverBase } from '../discover/videos';
@@ -12,7 +12,8 @@ import {
   speedKmh, sportIcon, swimPace100, weekVolume,
 } from './sports';
 import { consumeCallback, loadTokens, loginUrl, saveTokens, serverConfigured } from './strava';
-import { syncStrava } from './sync';
+import { activitiesFromCsv, readActivitiesCsv } from './stravaExport';
+import { addManualActivity, deleteActivity, importActivities, syncStrava } from './sync';
 
 const TABS = [
   { path: '/ironman', label: 'Přehled' },
@@ -171,6 +172,134 @@ function Records({ acts }: { acts: Activity[] }) {
   );
 }
 
+const ENTRY_SPORTS = [
+  { sport: 'Swim', label: 'Plavání', icon: '🏊' },
+  { sport: 'Ride', label: 'Kolo', icon: '🚴' },
+  { sport: 'Run', label: 'Běh', icon: '🏃' },
+  { sport: 'VirtualRide', label: 'Trenažér', icon: '🚲' },
+  { sport: 'WeightTraining', label: 'Posilovna', icon: '💪' },
+  { sport: 'Workout', label: 'Jiné', icon: '⚡' },
+];
+const pad2 = (n: number) => String(n).padStart(2, '0');
+
+/** Ruční zápis tréninku. */
+function EntryModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const now = new Date();
+  const [sport, setSport] = useState('Run');
+  const [dist, setDist] = useState('');
+  const [h, setH] = useState('');
+  const [min, setMin] = useState('');
+  const [date, setDate] = useState(dateKey());
+  const [time, setTime] = useState(`${pad2(now.getHours())}:${pad2(now.getMinutes())}`);
+  const [name, setName] = useState('');
+  const [hr, setHr] = useState('');
+  const [result, setResult] = useState<string | null>(null);
+  const isSwim = sport === 'Swim';
+  const needsDist = !['WeightTraining', 'Workout'].includes(sport);
+  const num = (s: string) => Number(s.replace(',', '.'));
+  const seconds = (num(h) || 0) * 3600 + (num(min) || 0) * 60;
+  const meters = needsDist ? (isSwim ? num(dist) : num(dist) * 1000) : 0;
+  const valid = seconds > 0 && (!needsDist || meters > 0);
+
+  const save = async () => {
+    if (!valid) return;
+    const label = ENTRY_SPORTS.find((x) => x.sport === sport)!.label;
+    const ts = new Date(`${date}T${time || '07:00'}:00`).getTime();
+    const r = await addManualActivity({
+      ts, date, sport, name: name.trim() || label, distance: meters, movingTime: Math.round(seconds), elevation: 0,
+      avgHr: num(hr) > 0 ? Math.round(num(hr)) : undefined,
+    });
+    setResult(`+${r.xp} XP${r.prs.length ? ` · 🏆 ${r.prs.join(', ')}` : ''}`);
+    setDist(''); setH(''); setMin(''); setName(''); setHr('');
+  };
+
+  return (
+    <Modal open={open} onClose={() => { setResult(null); onClose(); }} title="Zapsat trénink">
+      {result ? (
+        <div className="center">
+          <div className="pixel" style={{ fontSize: '2rem', color: 'var(--gold)' }}>{result}</div>
+          <p>Trénink zapsán 💪</p>
+          <div className="grid2">
+            <button onClick={() => setResult(null)}>+ Další</button>
+            <button className="primary" onClick={() => { setResult(null); onClose(); }}>Hotovo</button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="grid3" style={{ marginBottom: 12 }}>
+            {ENTRY_SPORTS.map((x) => (
+              <button key={x.sport} className={sport === x.sport ? 'btn-gold' : ''} onClick={() => setSport(x.sport)} style={{ flexDirection: 'column', gap: 0, padding: '8px 4px' }}>
+                <span style={{ fontSize: '1.4rem' }}>{x.icon}</span><span className="small">{x.label}</span>
+              </button>
+            ))}
+          </div>
+          {needsDist && (
+            <div className="field"><label>Vzdálenost ({isSwim ? 'metry' : 'km'})</label>
+              <input type="number" inputMode="decimal" value={dist} onChange={(e) => setDist(e.target.value)} placeholder={isSwim ? 'např. 1500' : 'např. 10,5'} autoFocus /></div>
+          )}
+          <label>Čas v pohybu</label>
+          <div className="grid2">
+            <div className="field"><input type="number" inputMode="numeric" value={h} onChange={(e) => setH(e.target.value)} placeholder="hodiny" aria-label="Hodiny" /></div>
+            <div className="field"><input type="number" inputMode="numeric" value={min} onChange={(e) => setMin(e.target.value)} placeholder="minuty" aria-label="Minuty" /></div>
+          </div>
+          <div className="grid2">
+            <div className="field"><label>Datum</label><input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
+            <div className="field"><label>Začátek</label><input type="time" value={time} onChange={(e) => setTime(e.target.value)} /></div>
+          </div>
+          <div className="grid2">
+            <div className="field"><label>Název (nepovinné)</label><input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ranní běh" /></div>
+            <div className="field"><label>Prům. tep (nepovinné)</label><input type="number" inputMode="numeric" value={hr} onChange={(e) => setHr(e.target.value)} placeholder="145" /></div>
+          </div>
+          {valid && needsDist && (
+            <p className="small muted center">
+              {isSwim ? `Tempo ${formatMinSec(seconds / (meters / 100))} /100 m` : sport.includes('Ride') ? `Rychlost ${(meters / 1000 / (seconds / 3600)).toFixed(1).replace('.', ',')} km/h` : `Tempo ${formatMinSec(seconds / (meters / 1000))} /km`}
+            </p>
+          )}
+          <p className="small muted">Kolo a hned po něm běh (do 3 hodin) se počítá jako brick – zadej správné časy začátku.</p>
+          <button className="primary btn-block" onClick={save} disabled={!valid}>Uložit trénink ✔</button>
+        </>
+      )}
+    </Modal>
+  );
+}
+
+/** Import historie z exportu Stravy (ZIP nebo activities.csv). */
+function ImportCard({ hasActivities }: { hasActivities: boolean }) {
+  const [state, setState] = useState<{ busy: boolean; msg?: string; err?: boolean }>({ busy: false });
+  // rozbalené jen napoprvé (bez aktivit); dál si pamatuje, co uživatel zvolil
+  const [open, setOpen] = useState(!hasActivities);
+  const onFile = async (file: File) => {
+    setState({ busy: true, msg: 'Načítám export…' });
+    try {
+      const text = await readActivitiesCsv(file);
+      const { activities, skipped } = activitiesFromCsv(text);
+      const r = await importActivities(activities);
+      setState({ busy: false, msg: `Hotovo: ${r.added} nových aktivit z ${r.total}${r.total - r.added ? ` (${r.total - r.added} už tu bylo)` : ''}${skipped ? `, ${skipped} řádků přeskočeno` : ''}.` });
+    } catch (e) {
+      setState({ busy: false, err: true, msg: (e as Error).message || 'Soubor se nepodařilo načíst.' });
+    }
+  };
+  return (
+    <section className="panel">
+      <details open={open} onToggle={(e) => setOpen(e.currentTarget.open)}>
+        <summary><b>📦 Import historie ze Stravy</b> <span className="small muted">(zdarma, bez Premium)</span></summary>
+        <ol className="small" style={{ paddingLeft: 18 }}>
+          <li>Na webu Stravy (v prohlížeči): <b>Nastavení → Můj účet → Stáhnout nebo smazat účet → Začít → Vyžádat archiv</b>.</li>
+          <li>Strava ti během pár hodin pošle e‑mail s odkazem na ZIP. Stáhni ho do telefonu.</li>
+          <li>Tady klepni na tlačítko a vyber stažený ZIP (nebo jen soubor <code>activities.csv</code> z něj).</li>
+        </ol>
+        <label className="btn btn-block" style={{ margin: 0 }}>
+          {state.busy ? '⏳ Importuji…' : '📂 Vybrat export ze Stravy'}
+          <input type="file" accept=".zip,.csv,application/zip,text/csv" hidden disabled={state.busy}
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = ''; }} />
+        </label>
+        {state.msg && <p className="small center" style={{ color: state.err ? 'var(--red)' : state.busy ? 'var(--muted)' : 'var(--green)' }}>{state.msg}</p>}
+        <p className="small muted">Za starou historii se XP nepřipisuje, ale odemknou se odznaky, rekordy a připravenost na závod. Import můžeš kdykoli zopakovat – duplicity se přeskočí.</p>
+      </details>
+    </section>
+  );
+}
+
 function IronmanHome() {
   const p = useProfile();
   const base = serverBase(p);
@@ -191,6 +320,7 @@ function IronmanHome() {
   }, []);
 
   const connected = !!loadTokens();
+  const [entry, setEntry] = useState(false);
   const today = dateKey();
   const daysLeft = p.ironmanDate ? daysBetween(today, p.ironmanDate) : null;
   const week = acts ? weekVolume(acts) : null;
@@ -226,15 +356,26 @@ function IronmanHome() {
             </div>
           </div>
         )}
-        <div style={{ marginTop: 12 }}>{connected && base ? <SyncButton base={base} /> : null}</div>
+        <button className="primary btn-block" style={{ marginTop: 12 }} onClick={() => setEntry(true)}>+ Zapsat trénink</button>
+        {connected && base && <div style={{ marginTop: 10 }}><SyncButton base={base} /></div>}
       </section>
 
-      {!connected && <ConnectCard />}
+      <EntryModal open={entry} onClose={() => setEntry(false)} />
 
       <QuestList quests={quests ?? []} />
       {acts && <Readiness acts={acts} />}
       {acts && <WeekChart acts={acts} />}
       {acts && acts.length > 0 && <Records acts={acts} />}
+      <ImportCard hasActivities={!!acts?.length} />
+      {!connected && (
+        <section className="panel">
+          <details>
+            <summary><b>🔗 Automatické propojení se Stravou</b> <span className="small muted">(vyžaduje Strava Premium)</span></summary>
+            <p className="small muted">Od června 2026 Strava povoluje vlastní API aplikace jen předplatitelům. Pokud Premium máš, tréninky se pak načítají samy.</p>
+            <ConnectCard />
+          </details>
+        </section>
+      )}
 
       <section className="panel">
         <h3 style={{ marginTop: 0 }}>Nastavení</h3>
@@ -250,7 +391,7 @@ function IronmanHome() {
           </button>
         )}
       </section>
-      <p className="small muted center">Data z aktivit poskytuje Strava.</p>
+      <p className="small muted center">Importovaná data pocházejí ze Stravy.</p>
     </div>
   );
 }
@@ -271,7 +412,7 @@ function Activities() {
       </div>
       <section className="panel">
         {list.length ? list.slice(0, 100).map((a) => (
-          <a key={a.id} className="row list-item" href={`https://www.strava.com/activities/${a.id}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text)', textDecoration: 'none' }}>
+          <a key={a.id} className="row list-item" href={a.id.startsWith('m-') ? undefined : `https://www.strava.com/activities/${a.id}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text)', textDecoration: 'none' }}>
             <span style={{ fontSize: '1.5rem' }}>{sportIcon(a.sport)}</span>
             <span className="grow" style={{ minWidth: 0 }}>
               <b style={{ display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.name}</b>
@@ -282,8 +423,14 @@ function Activities() {
               <span className="muted">{activityStatText(a)}</span>
             </span>
             {a.xp ? <span className="xp-chip">+{a.xp}</span> : null}
+            {a.id.startsWith('m-') && (
+              <button className="iconbtn btn-sm btn-ghost" aria-label="Smazat trénink" onClick={(e) => {
+                e.preventDefault();
+                if (confirm(`Smazat „${a.name}“? XP za něj se odečte.`)) deleteActivity(a);
+              }}>🗑</button>
+            )}
           </a>
-        )) : <Empty>Zatím žádné aktivity. Propoj Stravu v Přehledu.</Empty>}
+        )) : <Empty>Zatím žádné aktivity. Zapiš trénink nebo naimportuj export ze Stravy v Přehledu.</Empty>}
       </section>
     </div>
   );
