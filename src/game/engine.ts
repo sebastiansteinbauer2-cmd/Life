@@ -50,6 +50,15 @@ export function defaultProfile(): Profile {
     serverUrl: '',
     ironmanDate: '',
     ironmanWeeklyHours: 6,
+    ironmanRace: 'full',
+    navPinned: ['math', 'ironman', 'discover', 'finance'],
+    shopRewards: [
+      { id: 'serial', title: 'Večer seriálu', icon: '🎬', price: 50 },
+      { id: 'hry', title: 'Hodina hraní', icon: '🎮', price: 40 },
+      { id: 'cheat', title: 'Cheat meal', icon: '🍕', price: 100 },
+      { id: 'volno', title: 'Den volna od questů', icon: '😴', price: 200 },
+      { id: 'radost', title: 'Něco pro radost', icon: '🛍️', price: 500 },
+    ],
   };
 }
 

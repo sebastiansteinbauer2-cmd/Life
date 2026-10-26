@@ -35,6 +35,17 @@ export interface Profile {
   serverUrl: string; // vlastní Vercel server (proxy pro Trading 212, YouTube a Stravu)
   ironmanDate: string; // datum závodu (YYYY-MM-DD), nepovinné
   ironmanWeeklyHours: number; // týdenní cíl tréninkových hodin
+  ironmanRace: 'full' | 'half'; // typ závodu pro tréninkový plán
+  navPinned: ModuleId[]; // sekce ve spodní liště (zbytek je pod „Více“)
+  shopRewards: ShopReward[];
+}
+
+/** Odměna v obchodě za zlaťáky. */
+export interface ShopReward {
+  id: string;
+  title: string;
+  icon: string;
+  price: number;
 }
 
 /** Velký cíl: částka (např. auto) nebo pasivní příjem měsíčně. */

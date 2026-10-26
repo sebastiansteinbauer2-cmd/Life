@@ -7,7 +7,11 @@ Osobní gamifikovaný systém seberozvoje ve stylu RPG. Učení, trénink, šach
 - **🏋️ Trénink** – týdenní plán (horní / dolní / core / volno), automatická progrese podle cíle, osobní rekordy s bonusovým XP, level každého cviku, vlastní cviky, váha a grafy.
 - **♞ Šachy** – synchronizace s Chess.com (XP za nové partie, víc za rapid, bonus za výhru a rekordní rating), graf ratingu, statistika podle barvy a zahájení, poznámky a rozbory partií, týdenní plán a knihy jako dlouhodobé questy.
 - **🔭 Objevy** – Video dne a seznam nejnovějších videí z YouTube kanálů v knihovně (přehrávání přímo v aplikaci, po zhlédnutí zápis objevu), Objev dne, deník znalostí se štítky a vyhledáváním, knihovna zdrojů, náhodný článek z Wikipedie a týdenní opakovací kvíz.
-- **🏊 Ironman** – napojení na Stravu: plavání, kolo a běh se načítají samy, XP do nové statistiky Vytrvalost, týdenní questy (2× plavání, 2× kolo, 3× běh, brick), připravenost na Ironman / 70.3, hodiny po týdnech, osobní rekordy, odpočet do závodu a odznaky.
+- **🏊 Ironman** – tréninkový plán k datu závodu (základ → budování → vrchol → ladění, lehčí každý 4. týden) s plánem × skutečností, ruční zápis tréninků, import exportu ze Stravy, napojení na Stravu: plavání, kolo a běh se načítají samy, XP do nové statistiky Vytrvalost, týdenní questy (2× plavání, 2× kolo, 3× běh, brick), připravenost na Ironman / 70.3, hodiny po týdnech, osobní rekordy, odpočet do závodu a odznaky.
+- **📜 Deník hrdiny** – týdenní souhrn (XP, aktivní dny, questy, statistiky, nové odznaky) proti stejným dnům minulého týdne.
+- **🏪 Obchod** – 1 zlaťák za každých 10 XP, za zlaťáky si „kupuješ“ vlastní odměny.
+- **Navigace** – dole Domů + 4 vybrané sekce (Nastavení → Spodní lišta), zbytek pod „⋯ Více“.
+- **Záloha jedním klepnutím** přes sdílení (Google Disk, e‑mail…) a připomínka, když záloha chybí víc než týden.
 - **💰 Finance** – napojení na Trading 212 (API klíč jen pro čtení): hodnota účtu, zisk/ztráta, pozice, graf portfolia, vklady a dividendy. Měsíční quest „investuj svůj cíl“, série měsíců v řadě (bonus za 3 / 6 / 12), XP za vklady, dividendy a milníky portfolia, odznaky.
 
 Data jsou uložená **jen ve tvém zařízení** (IndexedDB). V **Nastavení → Export** si pravidelně stahuj zálohu (JSON).

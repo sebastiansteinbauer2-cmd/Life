@@ -1,8 +1,10 @@
 import { useRef, useState } from 'react';
 import { game, store, useProfile } from '../app/context';
+import { backupNow } from '../app/backup';
 import { ensureSeed } from '../app/seed';
 import type { Backup } from '../data/store';
-import type { MathLevel } from '../data/types';
+import type { MathLevel, ModuleId } from '../data/types';
+import { MODULES } from '../game/xp';
 import { dateKey } from '../lib/date';
 import { LEVEL_LABEL } from '../modules/math/topics';
 
@@ -93,7 +95,29 @@ export default function Settings() {
       </section>
 
       <section className="panel">
+        <h2 style={{ marginTop: 0 }}>Spodní lišta</h2>
+        <p className="small muted">Vyber až 4 sekce, které chceš mít dole. Ostatní najdeš pod „⋯ Více“.</p>
+        <div className="row wrap" style={{ gap: 6 }}>
+          {MODULES.map((m) => {
+            const on = p.navPinned.includes(m.id);
+            const toggle = () => {
+              const next: ModuleId[] = on ? p.navPinned.filter((x) => x !== m.id) : [...p.navPinned, m.id];
+              if (next.length <= 4) game.saveProfile({ navPinned: next });
+            };
+            return (
+              <button key={m.id} className={`chip ${on ? 'on' : ''}`} onClick={toggle} disabled={!on && p.navPinned.length >= 4}>
+                {m.icon} {m.label}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="panel">
         <h2 style={{ marginTop: 0 }}>Záloha dat</h2>
+        <button className="primary btn-block" style={{ marginBottom: 10 }} onClick={async () => { if (await backupNow()) setMsg('Záloha hotová ✓'); }}>
+          ☁️ Zálohovat teď (Google Disk, e‑mail…)
+        </button>
         <p className="small muted">Data jsou uložená jen v tomto zařízení (IndexedDB). Pravidelně si stahuj zálohu.</p>
         <div className="grid2">
           <button onClick={exportBackup}>⬇ Export (JSON)</button>

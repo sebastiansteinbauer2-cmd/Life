@@ -8,9 +8,10 @@ import type { Activity } from '../../data/types';
 import { addDays, dateKey, daysBetween, formatDate, weekStart } from '../../lib/date';
 import { serverBase } from '../discover/videos';
 import {
-  DISCIPLINES, RACES, SPORT_LABEL, activityStatText, formatMinSec, formatTime, kmText, paceSec, readiness, records,
+  DISCIPLINES, RACES, SPORT_LABEL, activityStatText, brickDays, disciplineOf, formatMinSec, formatTime, kmText, paceSec, readiness, records,
   speedKmh, sportIcon, swimPace100, weekVolume,
 } from './sports';
+import { PHASE_INFO, PHASE_LABEL, buildPlan, currentPlanWeek, type PlanWeek } from './plan';
 import { consumeCallback, loadTokens, loginUrl, saveTokens, serverConfigured } from './strava';
 import { activitiesFromCsv, readActivitiesCsv } from './stravaExport';
 import { addManualActivity, deleteActivity, importActivities, syncStrava } from './sync';
@@ -100,6 +101,69 @@ function SyncButton({ base }: { base: string }) {
       <div className="small muted center" style={{ marginTop: 4 }}>{last ? `Naposledy: ${new Date(last).toLocaleString('cs-CZ')}` : 'Zatím nesynchronizováno'}</div>
       {state.msg && <p className="center small" style={{ color: state.err ? 'var(--red)' : 'var(--green)' }}>{state.msg}</p>}
     </div>
+  );
+}
+
+/** Tréninkový plán k závodu: aktuální týden, cíle a srovnání plán × skutečnost. */
+function PlanCard({ acts, plan }: { acts: Activity[]; plan: PlanWeek[] }) {
+  const [showAll, setShowAll] = useState(false);
+  const today = dateKey();
+  const cur = currentPlanWeek(plan, today);
+  if (!cur) return null;
+  const actualH = (monday: string) => Math.round((acts.filter((a) => weekStart(new Date(a.ts)) === monday).reduce((n, a) => n + a.movingTime, 0) / 3600) * 10) / 10;
+  const vol = weekVolume(acts);
+  const longest = (d: 'bike' | 'run') => Math.max(0, ...acts.filter((a) => weekStart(new Date(a.ts)) === cur.monday && disciplineOf(a.sport) === d)
+    .map((a) => (d === 'bike' ? a.movingTime / 3600 : a.distance / 1000)));
+  const items = [
+    { label: `${String(cur.hours).replace('.', ',')} h tréninku`, done: actualH(cur.monday) >= cur.hours, now: `${actualH(cur.monday).toString().replace('.', ',')} h` },
+    ...(cur.longRideH ? [{ label: `Dlouhé kolo ${String(cur.longRideH).replace('.', ',')} h`, done: longest('bike') >= cur.longRideH * 0.9, now: `${longest('bike').toFixed(1).replace('.', ',')} h` }] : []),
+    ...(cur.longRunKm ? [{ label: `Dlouhý běh ${cur.longRunKm} km`, done: longest('run') >= cur.longRunKm * 0.9, now: `${longest('run').toFixed(1).replace('.', ',')} km` }] : []),
+    { label: `${cur.swims}× plavání`, done: vol.swim.count >= cur.swims, now: `${vol.swim.count}×` },
+    ...(cur.brick ? [{ label: 'Brick (kolo + běh)', done: brickDays(acts).some((d) => weekStart(new Date(`${d}T12:00:00`)) === cur.monday), now: '' }] : []),
+  ];
+  const shown = plan.filter((w) => w.monday >= cur.monday).slice(0, showAll ? undefined : 5);
+  const pastAndNext = plan.filter((w) => w.monday <= addDays(cur.monday, 21)).slice(-16);
+
+  return (
+    <section className="panel">
+      <div className="row between">
+        <h3 style={{ margin: 0 }}>🗓️ Plán: týden {cur.index}/{plan.length}</h3>
+        <span className={`diff ${cur.phase === 'peak' ? 'epic' : cur.phase === 'build' ? 'hard' : cur.phase === 'base' ? 'medium' : 'easy'}`}>{PHASE_LABEL[cur.phase]}{cur.recovery ? ' · lehký' : ''}</span>
+      </div>
+      <p className="small muted">{cur.recovery ? 'Odpočinkový týden – objem dolů, ať tělo vstřebá trénink.' : PHASE_INFO[cur.phase]}</p>
+      {items.map((it) => (
+        <div key={it.label} className="row between list-item small">
+          <span>{it.done ? '✅' : '⬜'} {it.label}</span>
+          <span className="muted">{it.now}</span>
+        </div>
+      ))}
+      <h3>Hodiny: plán × skutečnost</h3>
+      <LineChart
+        labels={pastAndNext.map((w) => formatDate(w.monday).slice(0, -5))}
+        series={[
+          { label: 'Plán', data: pastAndNext.map((w) => w.hours), color: '#f5c542', dashed: true },
+          { label: 'Skutečnost', data: pastAndNext.map((w) => (w.monday <= cur.monday ? actualH(w.monday) : null)), color: '#22d3ee' },
+        ]}
+        height={180}
+      />
+      <h3>Další týdny</h3>
+      <table>
+        <thead><tr><th>Týden</th><th>Fáze</th><th className="num">Hodiny</th><th className="num">Kolo</th><th className="num">Běh</th></tr></thead>
+        <tbody>
+          {shown.map((w) => (
+            <tr key={w.monday} style={w.monday === cur.monday ? { color: 'var(--gold-2)' } : undefined}>
+              <td>{formatDate(w.monday).slice(0, -5)}</td>
+              <td>{PHASE_LABEL[w.phase]}{w.recovery ? ' ↓' : ''}</td>
+              <td className="num">{String(w.hours).replace('.', ',')}</td>
+              <td className="num">{w.longRideH ? `${String(w.longRideH).replace('.', ',')} h` : '–'}</td>
+              <td className="num">{w.longRunKm ? `${w.longRunKm} km` : '–'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {!showAll && plan.filter((w) => w.monday >= cur.monday).length > 5 && <button className="btn-block btn-ghost btn-sm" onClick={() => setShowAll(true)}>Zobrazit celý plán</button>}
+      <p className="small muted" style={{ marginBottom: 0 }}>Orientační plán podle data závodu a tvého současného objemu – nenahrazuje trenéra. Poslouchej tělo, při bolesti uber.</p>
+    </section>
   );
 }
 
@@ -324,6 +388,15 @@ function IronmanHome() {
   const today = dateKey();
   const daysLeft = p.ironmanDate ? daysBetween(today, p.ironmanDate) : null;
   const week = acts ? weekVolume(acts) : null;
+  // plán: start od průměru hodin za poslední 4 týdny (nebo od cíle v nastavení)
+  const plan = (() => {
+    if (!p.ironmanDate || !acts) return [];
+    const recent = [1, 2, 3, 4].map((k) => weekVolume(acts, addDays(weekStart(), -7 * k)).hours);
+    const avg = recent.reduce((a, b) => a + b, 0) / 4;
+    return buildPlan(p.ironmanRace, p.ironmanDate, today, avg > 1 ? avg : p.ironmanWeeklyHours);
+  })();
+  const planWeek = currentPlanWeek(plan, today);
+  const weekGoal = planWeek?.hours ?? p.ironmanWeeklyHours;
 
   return (
     <div>
@@ -343,8 +416,8 @@ function IronmanHome() {
         {week && (
           <div style={{ marginTop: 12 }}>
             <div className="small muted" style={{ marginBottom: 4 }}>Tento týden</div>
-            <XpBar value={Math.min(week.hours, p.ironmanWeeklyHours)} max={p.ironmanWeeklyHours || 1}
-              label={`${week.hours.toFixed(1).replace('.', ',')} / ${p.ironmanWeeklyHours} h`} />
+            <XpBar value={Math.min(week.hours, weekGoal)} max={weekGoal || 1}
+              label={`${week.hours.toFixed(1).replace('.', ',')} / ${String(weekGoal).replace('.', ',')} h`} />
             <div className="grid3" style={{ marginTop: 10 }}>
               {DISCIPLINES.map((d) => (
                 <div key={d.id} className="center">
@@ -363,6 +436,8 @@ function IronmanHome() {
       <EntryModal open={entry} onClose={() => setEntry(false)} />
 
       <QuestList quests={quests ?? []} />
+      {acts && plan.length > 0 && <PlanCard acts={acts} plan={plan} />}
+      {!p.ironmanDate && <Empty>🗓️ Zadej dole datum závodu a appka ti sestaví tréninkový plán po týdnech.</Empty>}
       {acts && <Readiness acts={acts} />}
       {acts && <WeekChart acts={acts} />}
       {acts && acts.length > 0 && <Records acts={acts} />}
@@ -380,6 +455,10 @@ function IronmanHome() {
       <section className="panel">
         <h3 style={{ marginTop: 0 }}>Nastavení</h3>
         <div className="grid2">
+          <div className="field"><label>Závod</label>
+            <select value={p.ironmanRace} onChange={(e) => game.saveProfile({ ironmanRace: e.target.value as 'full' | 'half' })}>
+              <option value="full">Ironman (3,8/180/42,2)</option><option value="half">Ironman 70.3 (1,9/90/21,1)</option>
+            </select></div>
           <div className="field"><label>Datum závodu</label>
             <input type="date" value={p.ironmanDate} onChange={(e) => game.saveProfile({ ironmanDate: e.target.value })} /></div>
           <div className="field"><label>Cíl hodin týdně</label>
