@@ -6,10 +6,14 @@ import { VitePWA } from 'vite-plugin-pwa';
 // Relativní base ('./') funguje na GitHub Pages (podadresář) i na Vercelu (kořen).
 export default defineConfig({
   base: './',
+  define: {
+    __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+  },
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // nová verze se aplikuje řízeně (src/app/updates.ts): na pozadí hned, v popředí přes lištu
+      registerType: 'prompt',
       includeAssets: ['icon.svg', 'apple-touch-icon.png'],
       manifest: {
         name: 'Questy života',

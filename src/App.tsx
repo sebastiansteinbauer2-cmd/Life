@@ -3,6 +3,7 @@ import { game, ProfileProvider, store, useQuery } from './app/context';
 import { useRoute } from './app/router';
 import { ensureSeed } from './app/seed';
 import { GameFeedback } from './components/ui';
+import { applyUpdate, onUpdateReady } from './app/updates';
 import type { ModuleId, Profile } from './data/types';
 import Home from './pages/Home';
 import Onboarding from './pages/Onboarding';
@@ -52,6 +53,8 @@ export default function App() {
   const route = useRoute();
   const [ready, setReady] = useState(false);
   const [more, setMore] = useState(false);
+  const [updateReady, setUpdateReady] = useState(false);
+  useEffect(() => onUpdateReady(setUpdateReady) as () => void, []);
   const profile = useQuery<Profile>(() => game.getProfile());
 
   useEffect(() => {
@@ -76,6 +79,12 @@ export default function App() {
             <a className="btn iconbtn" href="#/settings" aria-label="Nastavení">⚙️</a>
           </div>
         </header>
+        {updateReady && (
+          <div className="update-bar" role="status">
+            <span>🆕 Je tu nová verze aplikace.</span>
+            <button className="btn-sm primary" onClick={() => applyUpdate()}>Aktualizovat</button>
+          </div>
+        )}
         <main>
           <Suspense fallback={<div className="empty">Načítám…</div>}>{page(route)}</Suspense>
         </main>

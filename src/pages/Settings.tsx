@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { game, store, useProfile } from '../app/context';
 import { backupNow } from '../app/backup';
+import { buildTime } from '../app/updates';
 import { ensureSeed } from '../app/seed';
 import type { Backup } from '../data/store';
 import type { MathLevel, ModuleId } from '../data/types';
@@ -131,7 +132,10 @@ export default function Settings() {
         <h2 style={{ marginTop: 0 }}>Nebezpečná zóna</h2>
         <button className="btn-danger btn-block" onClick={reset}>Smazat všechna data</button>
       </section>
-      <p className="center small muted">Questy života v1.0</p>
+      <p className="center small muted">
+        Questy života · verze {buildTime()?.toLocaleString('cs-CZ') ?? '?'}<br />
+        Aktualizace se stahují samy – stačí appku občas zavřít a znovu otevřít.
+      </p>
     </div>
   );
 }
