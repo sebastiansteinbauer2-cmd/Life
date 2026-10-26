@@ -5,8 +5,8 @@ import {
   DIVIDEND_XP, MILESTONE_XP, STREAK_MONTH_BONUSES, depositXp, milestoneIndex, monthStreak, netByMonth,
 } from './logic';
 import {
-  loadCreds, nextPageParams, t212, T212Error,
-  type Page, type RawCash, type RawDividend, type RawInfo, type RawPosition, type RawTx,
+  loadCreds, nextPageParams, t212, t212First, T212Error,
+  type Page, type RawCash, type RawDividend, type RawInfo, type RawPosition, type RawPositionV2, type RawSummary, type RawTx,
 } from './t212Api';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -26,6 +26,39 @@ async function readMeta<T>(id: string, fallback: T): Promise<T> {
   return ((await store.col('meta').get(id))?.value as T | undefined) ?? fallback;
 }
 
+type Creds = NonNullable<ReturnType<typeof loadCreds>>;
+
+/** Souhrn účtu – nové API (account/summary), záloha přes starší info + cash. */
+async function loadAccount(creds: Creds, proxy?: string) {
+  try {
+    const s = await t212<RawSummary>('equity/account/summary', {}, creds, proxy);
+    return {
+      currency: s.currency, total: s.totalValue, invested: s.investments.totalCost,
+      ppl: s.investments.unrealizedProfitLoss, free: s.cash.availableToTrade,
+    };
+  } catch (e) {
+    if (!(e instanceof T212Error) || (e.status !== 404 && e.status !== 400)) throw e;
+  }
+  const info = await t212<RawInfo>('equity/account/info', {}, creds, proxy);
+  await sleep(1100);
+  const cash = await t212<RawCash>('equity/account/cash', {}, creds, proxy);
+  return { currency: info.currencyCode, total: cash.total, invested: cash.invested, ppl: cash.ppl, free: cash.free };
+}
+
+/** Pozice – nové API (equity/positions), záloha přes starší equity/portfolio. */
+async function loadPositions(creds: Creds, proxy?: string) {
+  const { path, data } = await t212First<(RawPositionV2 | RawPosition)[]>(['equity/positions', 'equity/portfolio'], {}, creds, proxy);
+  if (path === 'equity/positions') {
+    return (data as RawPositionV2[]).map((p) => ({
+      ticker: p.instrument.ticker, quantity: p.quantity, averagePrice: p.averagePricePaid,
+      currentPrice: p.currentPrice, ppl: p.walletImpact?.unrealizedProfitLoss ?? 0,
+    }));
+  }
+  return (data as RawPosition[]).map((p) => ({
+    ticker: p.ticker, quantity: p.quantity, averagePrice: p.averagePrice, currentPrice: p.currentPrice, ppl: p.ppl,
+  }));
+}
+
 export async function syncFinance(onProgress: (msg: string) => void = () => undefined): Promise<FinanceSyncResult> {
   const creds = loadCreds();
   if (!creds?.key) throw new T212Error('Nejdřív zadej API klíč Trading 212.');
@@ -35,20 +68,15 @@ export async function syncFinance(onProgress: (msg: string) => void = () => unde
   const firstSync = !lastSync;
 
   onProgress('Načítám účet…');
-  const info = await t212<RawInfo>('equity/account/info', {}, creds, proxy);
-  await sleep(1100);
-  const cash = await t212<RawCash>('equity/account/cash', {}, creds, proxy);
-  await sleep(1100);
+  const account = await loadAccount(creds, proxy);
+  await sleep(1500);
   onProgress('Načítám pozice…');
-  const portfolio = await t212<RawPosition[]>('equity/portfolio', {}, creds, proxy);
-  const currency = info.currencyCode;
+  const positions = await loadPositions(creds, proxy);
+  const currency = account.currency;
+  const total = account.total;
 
   await store.col('financeSnapshots').put({
-    id: dateKey(), ts: Date.now(), currency,
-    total: cash.total, invested: cash.invested, ppl: cash.ppl, free: cash.free,
-    positions: portfolio.map((p) => ({
-      ticker: p.ticker, quantity: p.quantity, averagePrice: p.averagePrice, currentPrice: p.currentPrice, ppl: p.ppl,
-    })),
+    id: dateKey(), ts: Date.now(), currency, total, invested: account.invested, ppl: account.ppl, free: account.free, positions,
   });
 
   // Historie vkladů – stránkuj, dokud nenarazíš na už známý záznam
@@ -58,7 +86,7 @@ export async function syncFinance(onProgress: (msg: string) => void = () => unde
   for (let page = 0; params && page < (firstSync ? 4 : 2); page++) {
     if (page) await sleep(HISTORY_GAP_MS);
     onProgress(`Načítám vklady${page ? ` (strana ${page + 1})` : ''}…`);
-    const res: Page<RawTx> = await t212<Page<RawTx>>('history/transactions', params, creds, proxy);
+    const res: Page<RawTx> = (await t212First<Page<RawTx>>(['equity/history/transactions', 'history/transactions'], params, creds, proxy)).data;
     let hitKnown = false;
     for (const t of res.items) {
       if (knownTx.has(t.reference)) { hitKnown = true; continue; }
@@ -71,7 +99,7 @@ export async function syncFinance(onProgress: (msg: string) => void = () => unde
   await sleep(HISTORY_GAP_MS);
   onProgress('Načítám dividendy…');
   const knownDiv = new Set((await store.col('financeDividends').all()).map((d) => d.id));
-  const divPage = await t212<Page<RawDividend>>('history/dividends', { limit: 50 }, creds, proxy);
+  const divPage = (await t212First<Page<RawDividend>>(['equity/history/dividends', 'history/dividends'], { limit: 50 }, creds, proxy)).data;
   const freshDiv: FinanceDividend[] = divPage.items
     .filter((d) => !knownDiv.has(d.reference))
     .map((d) => ({ id: d.reference, ticker: d.ticker, amount: d.amount, ts: Date.parse(d.paidOn) }));
@@ -95,7 +123,7 @@ export async function syncFinance(onProgress: (msg: string) => void = () => unde
   }
 
   // Milníky hodnoty portfolia
-  const idx = milestoneIndex(cash.total, currency);
+  const idx = milestoneIndex(total, currency);
   const prevIdx = await readMeta<number | null>('financeMilestone', null);
   let milestones = 0;
   if (prevIdx === null || idx > prevIdx) {

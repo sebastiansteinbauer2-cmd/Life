@@ -29,9 +29,17 @@ export function saveCreds(c: T212Creds | null) {
 export const authHeader = (c: T212Creds) => (c.secret ? `Basic ${btoa(`${c.key}:${c.secret}`)}` : c.key);
 
 export class T212Error extends Error {
-  constructor(message: string, public cors = false) {
+  constructor(message: string, public cors = false, public status = 0) {
     super(message);
   }
+}
+
+/** Které oprávnění klíče potřebuje daný endpoint (pro srozumitelné chybové hlášky). */
+function permissionFor(path: string): string {
+  if (path.includes('dividends')) return 'History - Dividends';
+  if (path.includes('transactions')) return 'History - Transactions';
+  if (path.includes('positions') || path.includes('portfolio')) return 'Portfolio';
+  return 'Account data';
 }
 
 type Params = Record<string, string | number | undefined>;
@@ -43,10 +51,15 @@ const qs = (p: Params) => {
   return str ? `?${str}` : '';
 };
 
-async function handle<T>(r: Response): Promise<T> {
-  if (r.status === 401 || r.status === 403) throw new T212Error('Trading 212 odmítl klíč – zkontroluj API klíč, secret a oprávnění (Account, Portfolio, History).');
-  if (r.status === 429) throw new T212Error('Trading 212 omezuje počet dotazů. Zkus synchronizaci znovu za minutu.');
-  if (!r.ok) throw new T212Error(`Trading 212 odpověděl chybou ${r.status}.`);
+async function handle<T>(r: Response, path: string): Promise<T> {
+  if (r.status === 401) {
+    throw new T212Error('Trading 212 nepřijal klíč (401). Zkontroluj, že máš vložený celý API key i API secret, bez mezer a ze stejného páru.', false, 401);
+  }
+  if (r.status === 403) {
+    throw new T212Error(`Klíči chybí oprávnění „${permissionFor(path)}“ (403 u ${path}). Vytvoř nový klíč s tímto oprávněním.`, false, 403);
+  }
+  if (r.status === 429) throw new T212Error('Trading 212 omezuje počet dotazů. Zkus synchronizaci znovu za minutu.', false, 429);
+  if (!r.ok) throw new T212Error(`Trading 212 odpověděl chybou ${r.status} (${path}).`, false, r.status);
   return (await r.json()) as T;
 }
 
@@ -57,7 +70,7 @@ async function handle<T>(r: Response): Promise<T> {
 export async function t212<T>(path: string, params: Params, creds: T212Creds, proxyUrl?: string): Promise<T> {
   const headers = { Authorization: authHeader(creds) };
   try {
-    return await handle<T>(await fetch(`https://${creds.env}.trading212.com/api/v0/${path}${qs(params)}`, { headers }));
+    return await handle<T>(await fetch(`https://${creds.env}.trading212.com/api/v0/${path}${qs(params)}`, { headers }), path);
   } catch (e) {
     if (!(e instanceof TypeError)) throw e;
     if (!proxyUrl) {
@@ -65,12 +78,47 @@ export async function t212<T>(path: string, params: Params, creds: T212Creds, pr
     }
     const url = `${proxyUrl.replace(/\/$/, '')}${qs({ ...params, path, env: creds.env })}`;
     try {
-      return await handle<T>(await fetch(url, { headers }));
+      return await handle<T>(await fetch(url, { headers }), path);
     } catch (e2) {
       if (e2 instanceof TypeError) throw new T212Error('Nepodařilo se spojit s proxy. Jsi online a je adresa proxy správně?');
       throw e2;
     }
   }
+}
+
+/**
+ * Zkusí cesty postupně – Trading 212 v roce 2025 přejmenoval endpointy
+ * (např. equity/portfolio → equity/positions), starší cesta je záloha při 404.
+ */
+export async function t212First<T>(paths: string[], params: Params, creds: T212Creds, proxyUrl?: string): Promise<{ path: string; data: T }> {
+  let last: unknown;
+  for (const path of paths) {
+    try {
+      return { path, data: await t212<T>(path, params, creds, proxyUrl) };
+    } catch (e) {
+      last = e;
+      if (!(e instanceof T212Error) || (e.status !== 404 && e.status !== 400)) throw e;
+    }
+  }
+  throw last;
+}
+
+/** Nové API: GET equity/account/summary */
+export interface RawSummary {
+  id: number;
+  currency: string;
+  totalValue: number;
+  cash: { availableToTrade: number; reservedForOrders?: number; inPies?: number };
+  investments: { currentValue: number; totalCost: number; realizedProfitLoss?: number; unrealizedProfitLoss: number };
+}
+
+/** Nové API: GET equity/positions */
+export interface RawPositionV2 {
+  averagePricePaid: number;
+  currentPrice: number;
+  quantity: number;
+  instrument: { ticker: string; name?: string; currency?: string; isin?: string };
+  walletImpact?: { currency?: string; currentValue?: number; totalCost?: number; unrealizedProfitLoss?: number; fxImpact?: number };
 }
 
 export interface RawCash { free: number; total: number; ppl: number; result: number; invested: number; pieCash?: number; blocked?: number }

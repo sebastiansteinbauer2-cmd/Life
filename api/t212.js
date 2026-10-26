@@ -4,6 +4,10 @@
 // Použití: https://<tvoje-app>.vercel.app/api/t212?env=live&path=equity/account/cash
 
 const ALLOWED = new Set([
+  'equity/account/summary',
+  'equity/positions',
+  'equity/history/transactions',
+  'equity/history/dividends',
   'equity/account/info',
   'equity/account/cash',
   'equity/portfolio',
