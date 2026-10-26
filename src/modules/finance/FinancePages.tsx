@@ -75,6 +75,15 @@ function ConnectForm({ onDone, onCancel }: { onDone: () => void; onCancel?: () =
         <div className="field"><label>Měsíční cíl investic</label>
           <input type="number" inputMode="decimal" value={goal} onChange={(e) => setGoal(e.target.value)} /></div>
       </div>
+      <details style={{ marginBottom: 8 }}>
+        <summary className="small" style={{ color: 'var(--gold-2)' }}>Jak získat proxy URL (Vercel, zdarma)?</summary>
+        <ol className="small" style={{ paddingLeft: 18 }}>
+          <li>Na <a href="https://vercel.com/signup" target="_blank" rel="noopener noreferrer">vercel.com</a> se zaregistruj (Hobby) přes <b>Continue with GitHub</b>.</li>
+          <li><b>Add New → Project</b> → u repozitáře <b>Life</b> klepni <b>Import</b> → <b>Deploy</b>.</li>
+          <li>Po nasazení zkopíruj adresu projektu (např. <code>life-abc.vercel.app</code>).</li>
+          <li>Sem vlož <code>https://TVOJE-ADRESA.vercel.app/api/t212</code> a ulož.</li>
+        </ol>
+      </details>
       <div className="field"><label>Proxy URL (pokud přímé spojení nefunguje)</label>
         <input value={proxy} onChange={(e) => setProxy(e.target.value)} placeholder="https://tvoje-app.vercel.app/api/t212" autoCapitalize="none" /></div>
       <div className="row">

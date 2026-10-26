@@ -61,7 +61,7 @@ export async function t212<T>(path: string, params: Params, creds: T212Creds, pr
   } catch (e) {
     if (!(e instanceof TypeError)) throw e;
     if (!proxyUrl) {
-      throw new T212Error('Prohlížeč nepovolil přímé spojení s Trading 212. Nasaď proxy na Vercel a vlož její adresu (návod je níže).', true);
+      throw new T212Error('Trading 212 nedovolí přímé spojení z telefonu. Nasaď proxy na Vercel a vlož její adresu v Nastavení propojení (je tam návod).', true);
     }
     const url = `${proxyUrl.replace(/\/$/, '')}${qs({ ...params, path, env: creds.env })}`;
     try {
