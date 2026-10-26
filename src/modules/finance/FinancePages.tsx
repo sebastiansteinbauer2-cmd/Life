@@ -47,7 +47,9 @@ function ConnectForm({ onDone, onCancel }: { onDone: () => void; onCancel?: () =
 
   const save = async () => {
     saveCreds({ key: key.trim(), secret: secret.trim(), env });
-    await game.saveProfile({ financeProxyUrl: proxy.trim(), financeGoal: Math.max(0, Number(goal.replace(',', '.')) || 0) });
+    // odstraň tečku / lomítko / mezery na konci (častá chyba při kopírování)
+    const cleanProxy = proxy.trim().replace(/[.\s/]+$/, '');
+    await game.saveProfile({ financeProxyUrl: cleanProxy, financeGoal: Math.max(0, Number(goal.replace(',', '.')) || 0) });
     onDone();
   };
 
@@ -65,8 +67,10 @@ function ConnectForm({ onDone, onCancel }: { onDone: () => void; onCancel?: () =
       </details>
       <div className="field"><label>API klíč</label>
         <input value={key} onChange={(e) => setKey(e.target.value)} autoComplete="off" autoCapitalize="none" spellCheck={false} /></div>
-      <div className="field"><label>API secret (pokud ho máš)</label>
-        <input value={secret} onChange={(e) => setSecret(e.target.value)} type="password" autoComplete="off" /></div>
+      <div className="field"><label>API secret</label>
+        <input value={secret} onChange={(e) => setSecret(e.target.value)} type="password" autoComplete="off" />
+        {!secret.trim() && <div className="small" style={{ color: 'var(--gold-2)', marginTop: 4 }}>Nové klíče Trading 212 bez secretu nefungují. Secret se ukazuje jen při vytvoření klíče – pokud ho nemáš, vytvoř nový klíč.</div>}
+      </div>
       <div className="grid2">
         <div className="field"><label>Účet</label>
           <select value={env} onChange={(e) => setEnv(e.target.value as T212Env)}>
