@@ -146,7 +146,15 @@ function Library() {
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState({ title: '', url: '', category: 'věda', description: '' });
   if (!resources) return null;
-  const cats = [...new Set(resources.map((r) => r.category))];
+  const hiddenCount = resources.filter((r) => r.hidden).length;
+  const visible = resources.filter((r) => !r.hidden);
+  const cats = [...new Set(visible.map((r) => r.category))];
+  const remove = async (r: Resource) => {
+    if (!confirm(`${r.builtIn ? 'Skrýt' : 'Smazat'} „${r.title}“?`)) return;
+    // vestavěné zdroje se jen skryjí, aby je aplikace znovu nepřidala
+    if (r.builtIn) await store.col('resources').put({ ...r, hidden: true });
+    else await store.col('resources').delete(r.id);
+  };
   const add = async () => {
     if (!form.title.trim() || !/^https?:\/\//.test(form.url.trim())) return;
     await store.col('resources').put({ id: `res-${uid()}`, ...form, title: form.title.trim(), url: form.url.trim(), category: form.category.trim().toLowerCase() || 'ostatní', builtIn: false });
@@ -161,18 +169,25 @@ function Library() {
       {cats.map((c) => (
         <section key={c} className="panel">
           <h3 style={{ marginTop: 0, textTransform: 'capitalize' }}>{c}</h3>
-          {resources.filter((r) => r.category === c).map((r) => (
+          {visible.filter((r) => r.category === c).map((r) => (
             <div key={r.id} className="row list-item">
               <a href={r.url} {...ext} className="grow" style={{ textDecoration: 'none' }}>
                 <b>{r.title} ↗</b>
                 {r.description && <div className="small muted">{r.description}</div>}
               </a>
-              {!r.builtIn && <button className="iconbtn btn-sm" aria-label="Smazat zdroj" onClick={() => confirm(`Smazat „${r.title}“?`) && store.col('resources').delete(r.id)}>🗑</button>}
+              <button className="iconbtn btn-sm btn-ghost" aria-label={r.builtIn ? 'Skrýt zdroj' : 'Smazat zdroj'} onClick={() => remove(r)}>{r.builtIn ? '🙈' : '🗑'}</button>
             </div>
           ))}
         </section>
       ))}
       <button className="btn-block" onClick={() => setAdding(true)}>+ Přidat vlastní zdroj</button>
+      {hiddenCount > 0 && (
+        <button className="btn-block btn-ghost" style={{ marginTop: 8 }}
+          onClick={() => store.col('resources').bulkPut(resources.filter((r) => r.hidden).map((r) => ({ ...r, hidden: false })))}>
+          Zobrazit skryté zdroje ({hiddenCount})
+        </button>
+      )}
+      <p className="small muted">Tip: YouTube kanál přidáš odkazem ve tvaru <code>https://www.youtube.com/@kanal</code> – jeho videa se objeví v záložce Videa.</p>
       <Modal open={adding} onClose={() => setAdding(false)} title="Nový zdroj">
         <div className="field"><label>Název</label><input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
         <div className="field"><label>Odkaz (https://…)</label><input type="url" value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })} /></div>

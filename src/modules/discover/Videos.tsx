@@ -3,7 +3,7 @@ import { store, useProfile, useQuery } from '../../app/context';
 import { Empty, Modal } from '../../components/ui';
 import { saveDiscovery } from './save';
 import {
-  embedUrl, loadChannel, loadWatched, markWatched, pickVideoOfDay, serverBase, thumb, youtubeHandle,
+  dailyShuffle, embedUrl, loadChannel, loadWatched, markWatched, pickVideoOfDay, serverBase, thumb, youtubeHandle,
   type ChannelVideos, type Video,
 } from './videos';
 
@@ -13,7 +13,7 @@ export interface VideoItem { video: Video; channel: ChannelVideos }
 export function useVideos(): { items: VideoItem[]; loading: boolean; hasServer: boolean; channels: ChannelVideos[]; reload: () => void } {
   const p = useProfile();
   const base = serverBase(p);
-  const resources = useQuery(async () => (await store.col('resources').all()).filter((r) => youtubeHandle(r.url)));
+  const resources = useQuery(async () => (await store.col('resources').all()).filter((r) => !r.hidden && youtubeHandle(r.url)));
   const [channels, setChannels] = useState<ChannelVideos[]>([]);
   const [loading, setLoading] = useState(true);
   const [force, setForce] = useState(0);
@@ -68,7 +68,12 @@ export function VideoCard({ item, watched, onPlay, big = false }: { item: VideoI
 export function PlayerModal({ item, onClose }: { item: VideoItem | null; onClose: () => void }) {
   const [text, setText] = useState('');
   const [saved, setSaved] = useState(false);
-  useEffect(() => { setText(''); setSaved(false); }, [item?.video.id]);
+  useEffect(() => {
+    setText('');
+    setSaved(false);
+    // spuštěné video = zhlédnuté → Video dne i seznam se posunou dál
+    if (item) markWatched(item.video.id);
+  }, [item?.video.id]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!item) return null;
 
   const save = async () => {
@@ -104,7 +109,7 @@ export function PlayerModal({ item, onClose }: { item: VideoItem | null; onClose
             <textarea value={text} onChange={(e) => setText(e.target.value)} maxLength={400} placeholder="např. Neutronová hvězda má hustotu…" />
           </div>
           <div className="grid2">
-            <button onClick={async () => { await markWatched(item.video.id); onClose(); }}>Jen zhlédnuto</button>
+            <button onClick={onClose}>Zavřít</button>
             <button className="primary" onClick={save} disabled={!text.trim()}>Zapsat objev ✍️</button>
           </div>
           <a className="btn btn-ghost btn-block btn-sm" style={{ marginTop: 8 }} href={`https://www.youtube.com/watch?v=${item.video.id}`} target="_blank" rel="noopener noreferrer">Otevřít v aplikaci YouTube ↗</a>
@@ -149,15 +154,45 @@ export function VideoOfDay() {
 }
 
 /** Záložka Videa: nejnovější videa ze všech kanálů s filtrem podle kategorie a kanálu. */
+const PREF_KEY = 'questy.videoPrefs';
+function loadPrefs(): { hideSeen: boolean; order: 'mix' | 'new' } {
+  try {
+    return { hideSeen: true, order: 'mix', ...JSON.parse(localStorage.getItem(PREF_KEY) ?? '{}') };
+  } catch {
+    return { hideSeen: true, order: 'mix' };
+  }
+}
+
+/** Kdy se seznam naposledy obnovil a jestli poslední obnova selhala. */
+function FreshnessNote({ channels, loading }: { channels: ChannelVideos[]; loading: boolean }) {
+  if (loading || !channels.length) return null;
+  const oldest = Math.min(...channels.map((c) => c.ts));
+  const stale = channels.filter((c) => c.stale).length;
+  const mins = Math.round((Date.now() - oldest) / 60_000);
+  const age = mins < 1 ? "právě teď" : mins < 60 ? `před ${mins} min` : mins < 48 * 60 ? `před ${Math.round(mins / 60)} h` : `před ${Math.round(mins / 1440)} dny`;
+  return (
+    <p className="small" style={{ color: stale ? 'var(--red)' : 'var(--muted)', margin: '0 0 10px' }}>
+      {stale ? `⚠️ ${stale} z ${channels.length} kanálů se nepodařilo obnovit ze serveru – ukazuji uložená videa (${age}). Zkontroluj internet nebo adresu serveru v Nastavení.` : `Aktualizováno ${age} · ${channels.length} kanálů`}
+    </p>
+  );
+}
+
 export function VideosPage() {
   const { items, loading, hasServer, channels, reload } = useVideos();
   const watched = useWatched();
   const [filter, setFilter] = useState('all');
-  const [hideSeen, setHideSeen] = useState(false);
+  const [prefs, setPrefs] = useState(loadPrefs);
+  const hideSeen = prefs.hideSeen;
+  const updatePrefs = (p: Partial<typeof prefs>) => {
+    const next = { ...prefs, ...p };
+    setPrefs(next);
+    try { localStorage.setItem(PREF_KEY, JSON.stringify(next)); } catch { /* nevadí */ }
+  };
   const [playing, setPlaying] = useState<VideoItem | null>(null);
   const cats = [...new Set(channels.map((c) => c.category))];
-  const list = items.filter((i) =>
+  const filtered = items.filter((i) =>
     (filter === 'all' || i.channel.category === filter || i.channel.handle === filter) && (!hideSeen || !watched.has(i.video.id)));
+  const list = prefs.order === 'mix' ? dailyShuffle(filtered) : filtered;
 
   return (
     <div>
@@ -168,13 +203,18 @@ export function VideosPage() {
       </div>
       <div className="row between" style={{ marginBottom: 10 }}>
         <label className="check" style={{ margin: 0 }}>
-          <input type="checkbox" checked={hideSeen} onChange={(e) => setHideSeen(e.target.checked)} /> Skrýt zhlédnuté
+          <input type="checkbox" checked={hideSeen} onChange={(e) => updatePrefs({ hideSeen: e.target.checked })} /> Skrýt zhlédnuté
         </label>
         <button className="btn-sm btn-ghost" onClick={reload} disabled={loading}>{loading ? 'Načítám…' : '⟳ Obnovit'}</button>
       </div>
+      <div className="tabs">
+        <button className={prefs.order === 'mix' ? 'active' : ''} onClick={() => updatePrefs({ order: 'mix' })}>🎲 Objevuj (každý den jinak)</button>
+        <button className={prefs.order === 'new' ? 'active' : ''} onClick={() => updatePrefs({ order: 'new' })}>🆕 Nejnovější</button>
+      </div>
+      <FreshnessNote channels={channels} loading={loading} />
       {!hasServer && !items.length ? <NoServerHint />
         : list.length ? <div className="video-grid">{list.map((i) => <VideoCard key={i.video.id} item={i} watched={watched.has(i.video.id)} onPlay={() => setPlaying(i)} />)}</div>
-          : <Empty>{loading ? 'Načítám videa…' : 'Žádná videa. Přidej YouTube kanál v Knihovně (odkaz ve tvaru youtube.com/@kanal).'}</Empty>}
+          : <Empty>{loading ? 'Načítám videa…' : hideSeen && items.length ? 'Všechna videa v tomhle výběru už máš zhlédnutá 🎉 Zkus jiný filtr nebo přidej kanál v Knihovně.' : 'Žádná videa. Přidej YouTube kanál v Knihovně (odkaz ve tvaru youtube.com/@kanal).'}</Empty>}
       <PlayerModal item={playing} onClose={() => setPlaying(null)} />
     </div>
   );

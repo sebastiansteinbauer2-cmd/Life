@@ -205,6 +205,7 @@ export interface Resource {
   category: string;
   description?: string;
   builtIn: boolean;
+  hidden?: boolean; // skrytý vestavěný zdroj (seed ho znovu nepřidá)
 }
 
 export interface FinancePosition {
