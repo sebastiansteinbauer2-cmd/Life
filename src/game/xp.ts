@@ -42,6 +42,13 @@ export function titleForLevel(level: number): string {
   return t;
 }
 
+/** Pořadí titulu 0 (Nováček) … 7 (Legenda) – podle něj se mění výzbroj avatara. */
+export function titleTier(level: number): number {
+  let tier = 0;
+  TITLES.forEach(([min], i) => { if (level >= min) tier = i; });
+  return tier;
+}
+
 export function nextTitle(level: number): { level: number; title: string } | null {
   const n = TITLES.find(([min]) => min > level);
   return n ? { level: n[0], title: n[1] } : null;

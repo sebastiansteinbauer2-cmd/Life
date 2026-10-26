@@ -27,7 +27,7 @@ export function QuestRow({ q }: { q: QuestView }) {
     if (c) await store.col('quests').put({ ...c, archived: true });
   };
   return (
-    <div className={`quest ${q.done ? 'done' : ''}`}>
+    <div className={`quest ${q.done ? 'done' : ''}`} data-m={q.module}>
       {q.manual ? (
         <button className={`qcheck ${q.done ? 'on' : ''}`} onClick={tick} disabled={busy} aria-label={q.done ? 'Vrátit' : 'Splnit'}>
           {q.done ? '✓' : q.target > 1 ? '+' : ''}
@@ -42,17 +42,19 @@ export function QuestRow({ q }: { q: QuestView }) {
           <div className="qtitle">{q.title}</div>
         )}
         <div className="qmeta">
-          {REC_LABEL[q.recurrence]} · {DIFFICULTY_LABEL[q.difficulty]} · {STAT_LABEL[q.stat]}
-          {q.target > 1 && <> · <b style={{ color: 'var(--gold-2)' }}>{q.count}/{q.target}</b></>}
-          {q.description && !q.done && <><br />{q.description}</>}
+          <span className={`diff ${q.difficulty}`}>{DIFFICULTY_LABEL[q.difficulty]}</span>
+          <span>{REC_LABEL[q.recurrence]} · {STAT_LABEL[q.stat]}</span>
+          {q.target > 1 && <b style={{ color: 'var(--gold-2)' }}>{q.count}/{q.target}</b>}
         </div>
+        {q.description && !q.done && <div className="qmeta">{q.description}</div>}
+        {q.target > 1 && !q.done && <div className="qbar"><div style={{ width: `${(q.count / q.target) * 100}%` }} /></div>}
       </div>
       <div className="row" style={{ gap: 4 }}>
-        <span className="xp-chip">+{DIFFICULTY_XP[q.difficulty]}</span>
-        {q.custom && <button className="iconbtn btn-sm" onClick={archive} aria-label="Smazat quest">🗑</button>}
         {!q.done && q.manual && q.count > 0 && (
-          <button className="iconbtn btn-sm" onClick={() => game.undoQuest(q.id)} aria-label="Vrátit krok">↩</button>
+          <button className="iconbtn btn-sm btn-ghost" onClick={() => game.undoQuest(q.id)} aria-label="Vrátit krok">↩</button>
         )}
+        {q.custom && <button className="iconbtn btn-sm btn-ghost" onClick={archive} aria-label="Smazat quest">🗑</button>}
+        <span className="coin" title={`${DIFFICULTY_XP[q.difficulty]} XP`}><b>+{DIFFICULTY_XP[q.difficulty]}</b><small>XP</small></span>
       </div>
     </div>
   );

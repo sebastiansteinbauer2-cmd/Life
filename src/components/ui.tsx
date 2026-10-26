@@ -1,7 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { game } from '../app/context';
 import type { GameEvent } from '../game/engine';
-import { STAT_LABEL } from '../game/xp';
+import { STAT_LABEL, titleTier } from '../game/xp';
+import { PixelAvatar } from './PixelAvatar';
 
 export function XpBar({ value, max, label }: { value: number; max: number; label?: string }) {
   const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
@@ -91,9 +92,10 @@ export function GameFeedback() {
         <div className="levelup" onClick={() => setLevelUp(null)} role="alertdialog" aria-label="Level up">
           <div className="rays" />
           <div className="box">
-            <div className="pixel" style={{ color: 'var(--gold-2)' }}>LEVEL UP!</div>
+            <div className="pixel" style={{ color: 'var(--gold-2)', fontSize: '1.6rem', letterSpacing: '0.1em' }}>LEVEL UP!</div>
+            <div style={{ display: 'flex', justifyContent: 'center', margin: '8px 0' }}><PixelAvatar tier={titleTier(levelUp.level)} size={96} /></div>
             <div className="lv">{levelUp.level}</div>
-            <div className="title-badge" style={{ fontSize: '1rem' }}>{levelUp.title}</div>
+            <div className="title-badge" style={{ fontSize: '1.3rem', marginTop: 6 }}>{levelUp.title}</div>
             <p className="muted small" style={{ marginTop: 18 }}>Klepni pro pokračování</p>
           </div>
         </div>
