@@ -1,5 +1,6 @@
 // Pevnost hrdiny – definice budov, jednotek, nepřátel a výprav.
 import type { FortBuildingId, FortRes, FortUnitId, StatId } from '../../data/types';
+import type { RuleId } from './battle';
 
 export type Res = FortRes;
 export const RES_ICON: Record<keyof Res, string> = { wood: '🪵', stone: '🪨', crystal: '💎' };
@@ -38,15 +39,15 @@ export const BUILDINGS: BuildingDef[] = [
   },
   {
     id: 'forge', name: 'Kovárna', icon: '🔨', maxLevel: 9,
-    text: 'Lepší zbraně – všechny tvoje jednotky útočí silněji.',
+    text: 'Lepší výzbroj – válečníci a rytíři se naučí nové tahy.',
     cost: (to) => ({ wood: grow(80, to), stone: grow(120, to), crystal: grow(5, to, 1.6) }),
-    effect: (l) => `Útok +${(l - 1) * 8} %`,
+    effect: (l) => (l >= 6 ? 'Válečník jako král, rytíř i o 1 pole rovně' : l >= 3 ? 'Válečník chodí i šikmo (jako král)' : 'Válečník se zlepší na levelu 3'),
   },
   {
     id: 'academy', name: 'Akademie', icon: '📚', maxLevel: 9,
-    text: 'Výcvik a zbroj – všechny tvoje jednotky vydrží víc.',
+    text: 'Kouzla a výcvik – mágové a lučištníci se naučí nové tahy.',
     cost: (to) => ({ wood: grow(60, to), stone: grow(140, to), crystal: grow(5, to, 1.6) }),
-    effect: (l) => `Životy +${(l - 1) * 8} %`,
+    effect: (l) => (l >= 7 ? 'Arcimág (jako dáma), lučištník i o 1 pole rovně' : l >= 5 ? 'Mág se stane Arcimágem (jako dáma)' : 'Mág se zlepší na levelu 5'),
   },
   {
     id: 'walls', name: 'Hradby', icon: '🧱', maxLevel: 9,
@@ -100,12 +101,11 @@ export function buildMinutes(to: number): number {
 
 export type UnitId = FortUnitId;
 
-export interface UnitStats { hp: number; atk: number; move: number; range: number }
-
-export interface UnitDef extends UnitStats {
+export interface UnitDef {
   id: UnitId;
   name: string;
   icon: string;
+  rules: RuleId[]; // jak se figura pohybuje (jako šachy)
   cost: Res;
   text: string;
   barracks: number; // potřebný level kasáren
@@ -113,31 +113,28 @@ export interface UnitDef extends UnitStats {
 }
 
 export const UNITS: UnitDef[] = [
-  { id: 'warrior', name: 'Válečník', icon: '🗡️', hp: 30, atk: 8, move: 2, range: 1, cost: { wood: 25, stone: 0, crystal: 0 }, barracks: 1, text: 'Odolný bojovník na blízko.' },
-  { id: 'archer', name: 'Lučištník', icon: '🏹', hp: 18, atk: 7, move: 2, range: 3, cost: { wood: 20, stone: 15, crystal: 0 }, barracks: 2, stat: { id: 'dis', level: 2 }, text: 'Střílí na 3 pole. Drž ho za válečníky.' },
-  { id: 'mage', name: 'Mág', icon: '🧙', hp: 16, atk: 13, move: 2, range: 2, cost: { wood: 0, stone: 40, crystal: 4 }, barracks: 3, stat: { id: 'int', level: 3 }, text: 'Silná magie na 2 pole, ale křehký.' },
-  { id: 'knight', name: 'Rytíř', icon: '🐎', hp: 48, atk: 11, move: 4, range: 1, cost: { wood: 50, stone: 20, crystal: 6 }, barracks: 4, stat: { id: 'str', level: 3 }, text: 'Rychlý a tvrdý – dojede daleko.' },
+  { id: 'warrior', name: 'Válečník', icon: '🗡️', rules: ['wazir'], cost: { wood: 25, stone: 0, crystal: 0 }, barracks: 1, text: 'Pěšák v první linii – kryje cennější figury.' },
+  { id: 'archer', name: 'Lučištník', icon: '🏹', rules: ['bishop'], cost: { wood: 20, stone: 15, crystal: 0 }, barracks: 2, stat: { id: 'dis', level: 2 }, text: 'Jako střelec – útočí po diagonálách přes celou desku.' },
+  { id: 'mage', name: 'Mág', icon: '🧙', rules: ['rook'], cost: { wood: 0, stone: 40, crystal: 4 }, barracks: 3, stat: { id: 'int', level: 3 }, text: 'Jako věž – ovládá celé řady a sloupce.' },
+  { id: 'knight', name: 'Rytíř', icon: '🐎', rules: ['knight'], cost: { wood: 50, stone: 20, crystal: 6 }, barracks: 4, stat: { id: 'str', level: 3 }, text: 'Jako jezdec – skáče do L i přes ostatní figury.' },
 ];
 export const unitDef = (id: UnitId) => UNITS.find((u) => u.id === id)!;
-
-/** Hrdina – tvůj avatar. Sílí s tvým levelem a v bitvě nikdy neumírá natrvalo. */
-export const heroStats = (level: number): UnitStats => ({ hp: 36 + level * 4, atk: 9 + level, move: 3, range: 1 });
 
 // ---------- nepřátelé ----------
 
 export type EnemyId = 'goblin' | 'gobArcher' | 'orc' | 'shaman' | 'troll' | 'skeleton' | 'darkKnight' | 'dragon';
 
-export interface EnemyDef extends UnitStats { id: EnemyId; name: string; icon: string }
+export interface EnemyDef { id: EnemyId; name: string; icon: string; rules: RuleId[] }
 
 export const ENEMIES: Record<EnemyId, EnemyDef> = {
-  goblin: { id: 'goblin', name: 'Goblin', icon: '👺', hp: 14, atk: 5, move: 3, range: 1 },
-  gobArcher: { id: 'gobArcher', name: 'Goblin lučištník', icon: '🎯', hp: 12, atk: 5, move: 2, range: 3 },
-  orc: { id: 'orc', name: 'Ork', icon: '👹', hp: 34, atk: 9, move: 2, range: 1 },
-  shaman: { id: 'shaman', name: 'Šaman', icon: '🔮', hp: 18, atk: 11, move: 2, range: 2 },
-  skeleton: { id: 'skeleton', name: 'Kostlivec', icon: '💀', hp: 22, atk: 8, move: 2, range: 1 },
-  troll: { id: 'troll', name: 'Troll', icon: '🧌', hp: 75, atk: 14, move: 1, range: 1 },
-  darkKnight: { id: 'darkKnight', name: 'Temný rytíř', icon: '🦹', hp: 60, atk: 14, move: 3, range: 1 },
-  dragon: { id: 'dragon', name: 'Drak', icon: '🐉', hp: 110, atk: 12, move: 2, range: 2 },
+  goblin: { id: 'goblin', name: 'Goblin', icon: '👺', rules: ['wazir'] },
+  skeleton: { id: 'skeleton', name: 'Kostlivec', icon: '💀', rules: ['ferz'] },
+  gobArcher: { id: 'gobArcher', name: 'Goblin lučištník', icon: '🎯', rules: ['bishop3'] },
+  orc: { id: 'orc', name: 'Ork', icon: '👹', rules: ['king'] },
+  shaman: { id: 'shaman', name: 'Šaman', icon: '🔮', rules: ['rook3'] },
+  troll: { id: 'troll', name: 'Troll', icon: '🧌', rules: ['king2'] },
+  darkKnight: { id: 'darkKnight', name: 'Temný rytíř', icon: '🦹', rules: ['knight', 'wazir'] },
+  dragon: { id: 'dragon', name: 'Drak', icon: '🐉', rules: ['queen'] },
 };
 
 // ---------- výpravy ----------
@@ -166,9 +163,6 @@ export const CAMPS: Camp[] = [
   { id: 11, name: 'Brána temného hradu', icon: '🏰', enemies: ['darkKnight', 'darkKnight', 'skeleton', 'skeleton', 'shaman', 'shaman', 'gobArcher'], loot: { wood: 480, stone: 480, crystal: 22 }, rocks: [[1, 3], [5, 3], [2, 5], [4, 5]] },
   { id: 12, name: 'Dračí doupě', icon: '🐉', enemies: ['dragon', 'darkKnight', 'shaman', 'shaman'], loot: { wood: 700, stone: 700, crystal: 40 }, rocks: [[2, 4], [4, 4]] },
 ];
-/** Nepřátelé na dalších výpravách jsou silnější (násobek životů a útoku). */
-// (vyladěno simulací: se startovní armádou padnou 3 tábory, drak až s plně vylepšenou pevností)
-export const campScale = (id: number) => ({ hp: 1 + (id - 1) * 0.22, atk: 1 + (id - 1) * 0.13 });
 
 /** Opakovaná výprava dává menší kořist. */
 export const REPLAY_LOOT = 0.4;

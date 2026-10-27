@@ -1,10 +1,10 @@
 // Ekonomika pevnosti: suroviny z XP, stavění s časovačem, výcvik, kořist a nájezdy.
 import type { FortLog, FortState, StatId, XpEntry } from '../../data/types';
 import { addDays } from '../../lib/date';
-import type { ArmyUnit, Battle } from './battle';
+import type { ArmyPiece, Battle, RuleId } from './battle';
 import { fallen, stars } from './battle';
 import {
-  BUILDINGS, FIRST_CLEAR_CRYSTALS, REPLAY_LOOT, RES_FROM, UNITS, armyCap, buildMinutes, buildingDef, defenseFrom, heroStats,
+  BUILDINGS, FIRST_CLEAR_CRYSTALS, REPLAY_LOOT, RES_FROM, UNITS, armyCap, buildMinutes, buildingDef, defenseFrom,
   storageSafe, unitDef, type BuildingId, type Camp, type Res, type UnitId,
 } from './data';
 
@@ -95,19 +95,23 @@ export function openChest(s: FortState, today: string): { state: FortState; rewa
 
 // ---------- posílení ze skutečného života ----------
 
-export interface LifeBuff { id: string; icon: string; title: string; text: string; atk?: number; hp?: number; kinds?: string[] }
+export interface LifeBuff {
+  id: string; icon: string; title: string; text: string;
+  extraWarrior?: boolean; hints?: number; undos?: number; heroRules?: RuleId[];
+}
 export interface LifeToday { trained: boolean; mind: boolean; discipline: boolean; streak: number }
 
-/** Co jsi dnes udělal ve skutečnosti → posílení armády v bitvě. */
+/** Co jsi dnes udělal ve skutečnosti → výhody v bitvě. */
 export function lifeBuffs(t: LifeToday): LifeBuff[] {
   const out: LifeBuff[] = [];
-  if (t.trained) out.push({ id: 'trained', icon: '💪', title: 'Po tréninku', text: 'Dnes jsi trénoval – celá armáda +15 % útok', atk: 0.15 });
-  if (t.mind) out.push({ id: 'mind', icon: '🧠', title: 'Bystrá mysl', text: 'Dnes ses učil – mágové a lučištníci +25 % útok', atk: 0.25, kinds: ['mage', 'archer'] });
-  if (t.discipline) out.push({ id: 'dis', icon: '🛡️', title: 'Disciplína', text: 'Dnešní disciplína – celá armáda +10 % životy', hp: 0.1 });
-  if (t.streak >= 30) out.push({ id: 'streak', icon: '☄️', title: `Série ${t.streak} dní`, text: 'Hrdina +50 % životy a útok', hp: 0.5, atk: 0.5, kinds: ['hero'] });
-  else if (t.streak >= 7) out.push({ id: 'streak', icon: '🔥', title: `Série ${t.streak} dní`, text: 'Hrdina +25 % životy a útok', hp: 0.25, atk: 0.25, kinds: ['hero'] });
+  if (t.trained) out.push({ id: 'trained', icon: '💪', title: 'Po tréninku', text: 'Dnes jsi trénoval – do bitvy jde válečník navíc (neztratíš ho)', extraWarrior: true });
+  if (t.mind) out.push({ id: 'mind', icon: '🧠', title: 'Bystrá mysl', text: 'Dnes ses učil – 3× nápověda nejlepšího tahu', hints: 3 });
+  if (t.discipline) out.push({ id: 'dis', icon: '🛡️', title: 'Disciplína', text: 'Dnešní disciplína – 1× vrácení tahu', undos: 1 });
+  if (t.streak >= 30) out.push({ id: 'streak', icon: '☄️', title: `Série ${t.streak} dní`, text: 'Hrdina chodí jako dáma', heroRules: ['queen'] });
+  else if (t.streak >= 7) out.push({ id: 'streak', icon: '🔥', title: `Série ${t.streak} dní`, text: 'Hrdina chodí o 1–2 pole', heroRules: ['king2'] });
   return out;
 }
+export const buffSum = (buffs: LifeBuff[], k: 'hints' | 'undos') => buffs.reduce((n, b) => n + (b[k] ?? 0), 0);
 export const canAfford = (bal: Res, cost: Res) => RES_KEYS.every((r) => bal[r] >= cost[r]);
 
 export function maxLevel(s: FortState, id: BuildingId): number {
@@ -166,19 +170,23 @@ export function train(s: FortState, id: UnitId, bal: Res, statLevels: Record<Sta
   return { ...s, delta: add(s.delta, unitDef(id).cost, -1), army: { ...s.army, [id]: s.army[id] + 1 } };
 }
 
-export const modifiers = (s: FortState) => ({ atk: 1 + (s.buildings.forge - 1) * 0.08, hp: 1 + (s.buildings.academy - 1) * 0.08 });
+/** Jak se figury pohybují – s vylepšeními z Kovárny a Akademie. */
+export function unitRules(s: FortState, id: UnitId): RuleId[] {
+  const { forge, academy } = s.buildings;
+  if (id === 'warrior') return forge >= 3 ? ['king'] : ['wazir'];
+  if (id === 'knight') return forge >= 6 ? ['knight', 'wazir'] : ['knight'];
+  if (id === 'mage') return academy >= 5 ? ['queen'] : ['rook'];
+  if (id === 'archer') return academy >= 7 ? ['bishop', 'wazir'] : ['bishop'];
+  return unitDef(id).rules;
+}
+export const unitName = (s: FortState, id: UnitId) => (id === 'mage' && s.buildings.academy >= 5 ? 'Arcimág' : unitDef(id).name);
+export const heroRules = (buffs: LifeBuff[]): RuleId[] => buffs.find((b) => b.heroRules)?.heroRules ?? ['king'];
 
-/** Armáda do bitvy – hrdina a všichni vycvičení vojáci (s bonusy z Kovárny a Akademie). */
-export function battleArmy(s: FortState, heroLevel: number, buffs: LifeBuff[] = [], heroIcon = '🦸'): ArmyUnit[] {
-  const m = modifiers(s);
-  const boost = (kind: string, st: { hp: number; atk: number; move: number; range: number }) => {
-    const mine = buffs.filter((b) => !b.kinds || b.kinds.includes(kind));
-    const atk = mine.reduce((k, b) => k + (b.atk ?? 0), 0);
-    const hp = mine.reduce((k, b) => k + (b.hp ?? 0), 0);
-    return { ...st, hp: Math.round(st.hp * m.hp * (1 + hp)), atk: Math.round(st.atk * m.atk * (1 + atk)) };
-  };
-  const list: ArmyUnit[] = [{ kind: 'hero', name: 'Hrdina', icon: heroIcon, stats: boost('hero', heroStats(heroLevel)) }];
-  for (const u of UNITS) for (let i = 0; i < s.army[u.id]; i++) list.push({ kind: u.id, name: u.name, icon: u.icon, stats: boost(u.id, u) });
+/** Armáda do bitvy – hrdina, všichni vycvičení vojáci a případná posila z tréninku. */
+export function battleArmy(s: FortState, buffs: LifeBuff[] = []): ArmyPiece[] {
+  const list: ArmyPiece[] = [{ kind: 'hero', name: 'Hrdina', icon: '🦸', rules: heroRules(buffs) }];
+  for (const u of UNITS) for (let i = 0; i < s.army[u.id]; i++) list.push({ kind: u.id, name: unitName(s, u.id), icon: u.icon, rules: unitRules(s, u.id) });
+  if (buffs.some((b) => b.extraWarrior)) list.push({ kind: 'warrior', name: 'Posila', icon: '🗡️', rules: unitRules(s, 'warrior'), temp: true });
   return list;
 }
 
@@ -186,7 +194,7 @@ export function battleArmy(s: FortState, heroLevel: number, buffs: LifeBuff[] = 
 export function applyBattle(s: FortState, camp: Camp, b: Battle): { state: FortState; loot: Res; first: boolean; stars: number } {
   const army = { ...s.army };
   for (const k of fallen(b)) army[k as UnitId] = Math.max(0, army[k as UnitId] - 1);
-  const st = stars(b);
+  const st = stars(b, armySize(s));
   const first = st > 0 && !s.camps[camp.id];
   const loot = st === 0 ? ZERO : first ? { ...camp.loot, crystal: camp.loot.crystal + FIRST_CLEAR_CRYSTALS } : scale(camp.loot, REPLAY_LOOT);
   return {
